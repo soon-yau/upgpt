@@ -348,7 +348,6 @@ class ImageLogger(Callback):
             is_train = pl_module.training
             if is_train:
                 pl_module.eval()
-
             with torch.no_grad():
                 images = pl_module.log_images(batch, split=split, **self.log_images_kwargs)
 
@@ -556,7 +555,7 @@ if __name__ == "__main__":
                 }
             },
         }
-        default_logger_cfg = default_logger_cfgs["testtube"]
+        default_logger_cfg = default_logger_cfgs["wandb"]
         if "logger" in lightning_config:
             logger_cfg = lightning_config.logger
         else:
@@ -618,9 +617,9 @@ if __name__ == "__main__":
                     # "log_momentum": True
                 }
             },
-            "cuda_callback": {
-                "target": "main.CUDACallback"
-            },
+            #"cuda_callback": {
+            #    "target": "main.CUDACallback"
+            #},
         }
         if version.parse(pl.__version__) >= version.parse('1.4.0'):
             default_callbacks_cfg.update({'checkpoint_callback': modelckpt_cfg})

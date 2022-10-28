@@ -328,6 +328,7 @@ class DDPM(pl.LightningModule):
 
     def get_input(self, batch, k):
         x = batch[k]
+
         if len(x.shape) == 3:
             x = x[..., None]
         x = rearrange(x, 'b h w c -> b c h w')
@@ -664,7 +665,7 @@ class LatentDiffusion(DDPM):
             if cond_key is None:
                 cond_key = self.cond_stage_key
             if cond_key != self.first_stage_key:
-                if cond_key in ['caption', 'coordinates_bbox']:
+                if cond_key in ['caption', 'coordinates_bbox', 'txt']:
                     xc = batch[cond_key]
                 elif cond_key == 'class_label':
                     xc = batch
