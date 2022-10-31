@@ -141,7 +141,8 @@ class DeepFashionSMPL(Loader):
                 smpl_params = pickle.load(f)
                 pred_pose = smpl_params[0]['pred_body_pose']
                 pred_betas = smpl_params[0]['pred_betas']
-                smpl_pose = np.concatenate((pred_pose, pred_betas), axis=1)
+                pred_camera = np.expand_dims(smpl_params[0]['pred_camera'], 0)
+                smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
                 smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
         except Exception as e:
             print(e)
