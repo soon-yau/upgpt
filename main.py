@@ -17,6 +17,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateM
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import rank_zero_info
 
+from einops import rearrange
+
 from ldm.data.base import Txt2ImgIterableBaseDataset
 from ldm.util import instantiate_from_config
 
@@ -33,6 +35,13 @@ def get_parser(**parser_kwargs):
             raise argparse.ArgumentTypeError("Boolean value expected.")
 
     parser = argparse.ArgumentParser(**parser_kwargs)
+    parser.add_argument(
+        "--finetune_from",
+        type=str,
+        nargs="?",
+        default="",
+        help="path to checkpoint to load model state from"
+    )    
     parser.add_argument(
         "-n",
         "--name",
@@ -289,7 +298,7 @@ class SetupCallback(Callback):
 class ImageLogger(Callback):
     def __init__(self, batch_frequency, max_images, clamp=True, increase_log_steps=True,
                  rescale=True, disabled=False, log_on_batch_idx=False, log_first_step=False,
-                 log_images_kwargs=None):
+                 log_images_kwargs=None, log_cond_key=None):
         super().__init__()
         self.rescale = rescale
         self.batch_freq = batch_frequency
@@ -305,6 +314,7 @@ class ImageLogger(Callback):
         self.log_on_batch_idx = log_on_batch_idx
         self.log_images_kwargs = log_images_kwargs if log_images_kwargs else {}
         self.log_first_step = log_first_step
+        self.log_cond_key = log_cond_key
 
     @rank_zero_only
     def _testtube(self, pl_module, images, batch_idx, split):
@@ -358,6 +368,10 @@ class ImageLogger(Callback):
                     images[k] = images[k].detach().cpu()
                     if self.clamp:
                         images[k] = torch.clamp(images[k], -1., 1.)
+
+            if self.log_cond_key:
+                cond_images = batch[self.log_cond_key][:self.max_images].detach().cpu()
+                images[self.log_cond_key] = rearrange(cond_images,'b h w c -> b c h w' )
 
             self.log_local(pl_module.logger.save_dir, split, images,
                            pl_module.global_step, pl_module.current_epoch, batch_idx)
@@ -533,6 +547,20 @@ if __name__ == "__main__":
         # model
         model = instantiate_from_config(config.model)
 
+        if not opt.finetune_from == "":
+            print(f"Attempting to load state from {opt.finetune_from}")
+            old_state = torch.load(opt.finetune_from, map_location="cpu")
+            if "state_dict" in old_state:
+                print(f"Found nested key 'state_dict' in checkpoint, loading this instead")
+                old_state = old_state["state_dict"]
+            m, u = model.load_state_dict(old_state, strict=False)
+            if len(m) > 0:
+                print("missing keys:")
+                print(m)
+            if len(u) > 0:
+                print("unexpected keys:")
+                print(u)
+                
         # trainer and callbacks
         trainer_kwargs = dict()
 

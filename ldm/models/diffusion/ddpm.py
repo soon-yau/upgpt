@@ -446,6 +446,9 @@ class LatentDiffusion(DDPM):
             conditioning_key = None
         ckpt_path = kwargs.pop("ckpt_path", None)
         ignore_keys = kwargs.pop("ignore_keys", [])
+        self.cond_stage_key_2 = kwargs.pop('cond_stage_key_2', None)
+        cond_stage_2_config = kwargs.pop('cond_stage_2_config', None)
+
         super().__init__(conditioning_key=conditioning_key, *args, **kwargs)
         self.concat_mode = concat_mode
         self.cond_stage_trainable = cond_stage_trainable
@@ -460,6 +463,8 @@ class LatentDiffusion(DDPM):
             self.register_buffer('scale_factor', torch.tensor(scale_factor))
         self.instantiate_first_stage(first_stage_config)
         self.instantiate_cond_stage(cond_stage_config)
+        self.instantiate_cond_2_stage(cond_stage_2_config)
+
         self.cond_stage_forward = cond_stage_forward
         self.clip_denoised = False
         self.bbox_tokenizer = None  
@@ -527,6 +532,14 @@ class LatentDiffusion(DDPM):
             assert config != '__is_unconditional__'
             model = instantiate_from_config(config)
             self.cond_stage_model = model
+
+    def instantiate_cond_2_stage(self, config):
+        if config:
+            assert self.cond_stage_key_2 != None
+            self.cond_stage_2_model = instantiate_from_config(config)
+        else:
+            self.cond_stage_2_model = None
+
 
     def _get_denoise_row_from_list(self, samples, desc='', force_no_decoder_quantization=False):
         denoise_row = []
@@ -651,7 +664,7 @@ class LatentDiffusion(DDPM):
 
         return fold, unfold, normalization, weighting
 
-    @torch.no_grad()
+    #@torch.no_grad()
     def get_input(self, batch, k, return_first_stage_outputs=False, force_c_encode=False,
                   cond_key=None, return_original_cond=False, bs=None):
         x = super().get_input(batch, k)
@@ -681,6 +694,14 @@ class LatentDiffusion(DDPM):
                     c = self.get_learned_conditioning(xc.to(self.device))
             else:
                 c = xc
+
+            # second condition
+            if self.cond_stage_2_model:
+                xc2 = batch.get(self.cond_stage_key_2).to(self.device)
+                c2 = self.cond_stage_2_model.forward(xc2)
+                c = torch.concat((c, c2), 1)
+
+
             if bs is not None:
                 c = c[:bs]
 
@@ -1365,6 +1386,8 @@ class LatentDiffusion(DDPM):
         if self.cond_stage_trainable:
             print(f"{self.__class__.__name__}: Also optimizing conditioner params!")
             params = params + list(self.cond_stage_model.parameters())
+        if self.cond_stage_2_model:
+            params = params + list(self.cond_stage_2_model.parameters())
         if self.learn_logvar:
             print('Diffusion model optimizing logvar')
             params.append(self.logvar)

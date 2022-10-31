@@ -115,7 +115,7 @@ class DeepFashionSMPL(Loader):
         self.df = self.df[self.df['num_keypoints']==1] 
 
         if not is_train:
-            _, self.df = train_test_split(self.df, test_size=4)
+            _, self.df = train_test_split(self.df, test_size=10)
         self.root_dir = Path(folder)
         self.image_transform = T.Compose([
             #T.Resize((512,512)),
@@ -175,7 +175,7 @@ class DeepFashionKeypoint(Loader):
         self.df['num_keypoints']=self.df.keypoints.map(lambda x: x.shape[0])
         self.df = self.df[self.df['num_keypoints']==1] 
         if not is_train:
-            _, self.df = train_test_split(self.df, test_size=4)        
+            _, self.df = train_test_split(self.df, test_size=10)
         self.root_dir = Path(folder)
         self.pose_visualizer = PoseVisualizer('keypoint', (256,256))
         self.image_transform = T.Compose([

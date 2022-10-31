@@ -9,6 +9,7 @@ model:
     timesteps: 1000
     first_stage_key: "image"
     cond_stage_key: "txt"
+    cond_stage_key_2: "smpl"
     image_size: 32
     channels: 4
     cond_stage_trainable: false   # Note: different from the one we trained before
@@ -69,6 +70,11 @@ model:
     cond_stage_config:
       target: ldm.modules.encoders.modules.FrozenCLIPEmbedder
 
+    cond_stage_2_config:
+      target: ldm.modules.poses.poses.LinearProject
+      params:
+        input_dim: 82
+        output_dim: 768
 
 data:
   target: main.DataModuleFromConfig
@@ -77,17 +83,20 @@ data:
     num_workers: 16
     #num_val_workers: 0 # Avoid a weird val dataloader issue
     train:
-      target: ldm.data.deepfashion.DeepFashionKeypoint
+      target: ldm.data.deepfashion.DeepFashionSMPL
       params:
         pickle_file: data/deepfashion/deepfashion_1.pickle
         folder: /home/soon/datasets/deepfashion/img_256
+        smpl_folder: /home/soon/datasets/smpl/deepfashion/img_256
         is_train: True
+        random_drop: 0.1
 
     validation:
-      target: ldm.data.deepfashion.DeepFashionKeypoint
+      target: ldm.data.deepfashion.DeepFashionSMPL
       params:
         pickle_file: data/deepfashion/deepfashion_1.pickle
         folder: /home/soon/datasets/deepfashion/img_256
+        smpl_folder: /home/soon/datasets/smpl/deepfashion/img_256
         is_train: False
 
 lightning:
@@ -98,7 +107,7 @@ lightning:
       #every_n_train_steps: 1000
       save_last: true
       every_n_epochs: 1
-      save_top_k: 2
+      save_top_k: 1
       monitor: val/loss
 
   callbacks:
@@ -110,6 +119,7 @@ lightning:
         increase_log_steps: False
         log_first_step: True
         #log_all_val: False #True
+        log_cond_key: smpl_image
         log_images_kwargs:
           use_ema_scope: True
           inpaint: False
@@ -125,5 +135,3 @@ lightning:
     accumulate_grad_batches: 1
     max_epochs: 10
     #max_steps: 40000
-    #val_check_interval: 2
-    #check_val_every_n_epoch: 1
