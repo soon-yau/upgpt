@@ -176,7 +176,7 @@ class DeepFashionKeypoint(Loader):
         self.df['num_keypoints']=self.df.keypoints.map(lambda x: x.shape[0])
         self.df = self.df[self.df['num_keypoints']==1] 
         if not is_train:
-            _, self.df = train_test_split(self.df, test_size=10)
+            _, self.df = train_test_split(self.df, test_size=20)
         self.root_dir = Path(folder)
         self.pose_visualizer = PoseVisualizer('keypoint', (256,256))
         self.image_transform = T.Compose([
@@ -200,8 +200,10 @@ class DeepFashionKeypoint(Loader):
         image = PIL.Image.open(str(image_file))
         image = image.convert('RGB') if image.mode != 'RGB' else image
         image = self.image_transform(image)
-        pose = self.pose_visualizer.convert(sample.keypoints)*2.0-1.0
-        return {"image": image, "txt": description, 'pose':keypoints, 'pose_image':pose}
+        pose_image = self.pose_visualizer.convert(sample.keypoints)
+        pose_image = rearrange(pose_image * 2. - 1., 'c h w -> h w c')
+
+        return {"image": image, "txt": description, 'pose':keypoints, 'pose_image':pose_image}
 
 '''
 class DeepFashionSMPL_SR(Loader):

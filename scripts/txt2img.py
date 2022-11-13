@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 from PIL import Image
 from tqdm import tqdm, trange
 from itertools import islice
-from einops import rearrange
+from einops import rearrange, repeat
 from torchvision.utils import make_grid
 import time
 from pytorch_lightning import seed_everything
@@ -42,6 +42,16 @@ def load_model_from_config(config, ckpt, verbose=False):
     model.eval()
     return model
 
+def load_img(path):
+    image = Image.open(path).convert("RGB")
+    w, h = image.size
+    print(f"loaded input image of size ({w}, {h}) from {path}")
+    w, h = map(lambda x: x - x % 32, (w, h))  # resize to integer multiple of 32
+    image = image.resize((w, h), resample=Image.LANCZOS)
+    image = np.array(image).astype(np.float32) / 255.0
+    image = image[None].transpose(0, 3, 1, 2)
+    image = torch.from_numpy(image)
+    return 2.*image - 1.
 
 def main():
     parser = argparse.ArgumentParser()
@@ -52,6 +62,14 @@ def main():
         nargs="?",
         default="a painting of a virus monster playing guitar",
         help="the prompt to render"
+    )
+
+    parser.add_argument(
+        "--init-img",
+        type=str,
+        nargs="?",
+        default="",
+        help="path to the input image"
     )
 
     parser.add_argument(
@@ -154,6 +172,13 @@ def main():
     )
 
     parser.add_argument(
+        "--strength",
+        type=float,
+        default=0.75,
+        help="strength for noising/unnoising. 1.0 corresponds to full destruction of information in init image",
+    )
+
+    parser.add_argument(
         "--dyn",
         type=float,
         help="dynamic thresholding from Imagen, in latent space (TODO: try in pixel space with intermediate decode)",
@@ -228,8 +253,21 @@ def main():
     grid_count = len(os.listdir(outpath)) - 1
 
     start_code = None
+
     if opt.fixed_code:
+        assert not opt.init_img, "You can use only either fixed_code or init_img"
         start_code = torch.randn([opt.n_samples, opt.C, opt.H // opt.f, opt.W // opt.f], device=device)
+    elif opt.init_img:
+        assert os.path.isfile(opt.init_img)
+        init_image = load_img(opt.init_img).to(device)
+        init_image = repeat(init_image, '1 ... -> b ...', b=batch_size)
+        start_code = model.get_first_stage_encoding(model.encode_first_stage(init_image))  # move to latent space
+        assert 0. <= opt.strength <= 1., 'can only work with strength in [0.0, 1.0]'
+        t_enc = int(opt.strength * opt.ddim_steps)
+        print(f"target t_enc is {t_enc} steps")
+
+        sampler.make_schedule(ddim_num_steps=opt.ddim_steps, ddim_eta=opt.ddim_eta, verbose=False)        
+        print("Using conditional image", opt.init_img)
 
     precision_scope = autocast if opt.precision=="autocast" else nullcontext
     with torch.no_grad():
@@ -246,6 +284,10 @@ def main():
                             prompts = list(prompts)
                         c = model.get_learned_conditioning(prompts)
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
+
+                        if opt.init_img:
+                            start_code = sampler.stochastic_encode(start_code, torch.tensor([t_enc]*batch_size).to(device))
+
                         samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                          conditioning=c,
                                                          batch_size=opt.n_samples,
