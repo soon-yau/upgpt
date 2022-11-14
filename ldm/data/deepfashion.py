@@ -107,15 +107,17 @@ class DeepFashionKeypoint(Loader):
 
 class DeepFashionSMPL(Loader):
 
-    def __init__(self, pickle_file, folder, smpl_folder, is_train, shuffle=False, random_drop=0.0):
+    def __init__(self, pickle_file, folder, smpl_folder, is_train, shuffle=False, \
+                random_drop=0.0, test_size=0.005, test_split_random=8):
         super().__init__(pickle_file, folder, shuffle)
         self.random_drop = random_drop  # drop smpl condition 
         self.smpl_folder = Path(smpl_folder)
         self.df['num_keypoints']=self.df.keypoints.map(lambda x: x.shape[0])
         self.df = self.df[self.df['num_keypoints']==1] 
 
-        if not is_train:
-            _, self.df = train_test_split(self.df, test_size=10)
+        train, test = train_test_split(self.df, test_size=test_size, random_state=test_split_random)
+        self.df = train if is_train else test
+
         self.root_dir = Path(folder)
         self.image_transform = T.Compose([
             #T.Resize((512,512)),
@@ -170,13 +172,13 @@ class DeepFashionSMPL(Loader):
 
 class DeepFashionKeypoint(Loader):
 
-    def __init__(self, pickle_file, folder, is_train, shuffle=False):
+    def __init__(self, pickle_file, folder, is_train, shuffle=False, test_size=0.005, test_split_random=8):
         super().__init__(pickle_file, folder,shuffle)
 
         self.df['num_keypoints']=self.df.keypoints.map(lambda x: x.shape[0])
         self.df = self.df[self.df['num_keypoints']==1] 
-        if not is_train:
-            _, self.df = train_test_split(self.df, test_size=20)
+        train, test = train_test_split(self.df, test_size=test_size, random_state=test_split_random)
+        self.df = train if is_train else test
         self.root_dir = Path(folder)
         self.pose_visualizer = PoseVisualizer('keypoint', (256,256))
         self.image_transform = T.Compose([

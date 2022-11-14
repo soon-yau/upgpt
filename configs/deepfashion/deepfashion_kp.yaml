@@ -46,7 +46,7 @@ model:
     first_stage_config:
       target: ldm.models.autoencoder.AutoencoderKL
       params:
-        ckpt_path: /home/soon/github/stable-diffusion-finetune/models/first_stage_models/kl-f8/model.ckpt
+        ckpt_path: models/first_stage_models/kl-f8/model.ckpt
         embed_dim: 4
         monitor: val/rec_loss
         ddconfig:
@@ -104,7 +104,7 @@ lightning:
       #every_n_train_steps: 1000
       save_last: true
       every_n_epochs: 1
-      save_top_k: 1
+      save_top_k: 2
       monitor: val/loss
 
   callbacks:
@@ -130,5 +130,5 @@ lightning:
     benchmark: True
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
-    max_epochs: 50
+    max_epochs: 32
     #max_steps: 40000
