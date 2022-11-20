@@ -298,7 +298,7 @@ class SetupCallback(Callback):
 class ImageLogger(Callback):
     def __init__(self, batch_frequency, max_images, clamp=True, increase_log_steps=True,
                  rescale=True, disabled=False, log_on_batch_idx=False, log_first_step=False,
-                 log_images_kwargs=None, log_cond_key=None):
+                 log_images_kwargs=None, log_cond_keys=[]):
         super().__init__()
         self.rescale = rescale
         self.batch_freq = batch_frequency
@@ -314,7 +314,7 @@ class ImageLogger(Callback):
         self.log_on_batch_idx = log_on_batch_idx
         self.log_images_kwargs = log_images_kwargs if log_images_kwargs else {}
         self.log_first_step = log_first_step
-        self.log_cond_key = log_cond_key
+        self.log_cond_keys = log_cond_keys
 
     @rank_zero_only
     def _testtube(self, pl_module, images, batch_idx, split):
@@ -369,10 +369,12 @@ class ImageLogger(Callback):
                     if self.clamp:
                         images[k] = torch.clamp(images[k], -1., 1.)
 
-            if self.log_cond_key:
-                cond_images = batch[self.log_cond_key][:self.max_images].detach().cpu()
-                images[self.log_cond_key] = rearrange(cond_images,'b h w c -> b c h w' )
-
+            for log_cond_key in  self.log_cond_keys:
+                if log_cond_key == 'pose_image':
+                    cond_images = batch[log_cond_key][:self.max_images].detach().cpu()
+                    images[log_cond_key] = rearrange(cond_images,'b h w c -> b c h w' )
+                else:
+                    images[log_cond_key] = batch[log_cond_key]
             self.log_local(pl_module.logger.save_dir, split, images,
                            pl_module.global_step, pl_module.current_epoch, batch_idx)
 
@@ -520,7 +522,7 @@ if __name__ == "__main__":
 
     ckptdir = os.path.join(logdir, "checkpoints")
     cfgdir = os.path.join(logdir, "configs")
-    seed_everything(opt.seed)
+    #seed_everything(opt.seed)
 
     try:
         # init and save configs
@@ -583,7 +585,7 @@ if __name__ == "__main__":
                 }
             },
         }
-        default_logger_cfg = default_logger_cfgs["wandb"]
+        default_logger_cfg = default_logger_cfgs["testtube"]
         if "logger" in lightning_config:
             logger_cfg = lightning_config.logger
         else:
