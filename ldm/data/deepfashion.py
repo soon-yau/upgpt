@@ -207,12 +207,17 @@ class DeepFashionKeypointFaceEmbed(Loader):
         pose_image = rearrange(pose_image * 2. - 1., 'c h w -> h w c')
 
         # Load embedding
-        face_file = image_file.replace('img_256', 'face')
-        print("lala", face_file)
-        face_image = PIL.Image.open(face_file)
-        embed_file = face_file.replace('.jpg', '.p')
-        with open(embed_file, 'rb') as f:
-            embed = T.ToTensor()(pickle.load(f))
+        try:
+            face_file = image_file.replace('img_256', 'face')
+            face_image = PIL.Image.open(face_file)
+            face_image = T.Resize(64)(face_image)
+            face_image = self.image_transform(face_image)
+            embed_file = face_file.replace('.jpg', '.p')
+            with open(embed_file, 'rb') as f:
+                embed = pickle.load(f).astype(np.float32)
+                embed = T.ToTensor()(np.expand_dims(embed, 0)).view((1,-1))
+        except Exception as e:
+            return self.skip_sample(ind)
 
         return {"image": image, "txt": description, 'pose':keypoints, 'pose_image':pose_image, \
                 "face_image":face_image, 'face_embed':embed}

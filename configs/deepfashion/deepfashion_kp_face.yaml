@@ -45,8 +45,8 @@ model:
     first_stage_config:
       target: ldm.models.autoencoder.AutoencoderKL
       params:
-        ckpt_path: models/first_stage_models/kl-f8/model.ckpt
-        #ckpt_path: models/first_stage_models/kl-f8-deepfashion/deepfashion_v1.ckpt
+        #ckpt_path: models/first_stage_models/kl-f8/model.ckpt
+        ckpt_path: models/first_stage_models/kl-f8-deepfashion/deepfashion_v1.ckpt
         embed_dim: 4
         monitor: val/rec_loss
         ddconfig:
@@ -77,12 +77,12 @@ model:
         params:
           input_dim: 75
           output_dim: 768
-      #face_cond:
-      #  cond_stage_key: "face_embed"    
-      #  target: ldm.modules.poses.poses.LinearProject
-      #  params:
-      #    input_dim: 128
-      #    output_dim: 768
+      face_cond:
+        cond_stage_key: "face_embed"    
+        target: ldm.modules.poses.poses.LinearProject
+        params:
+          input_dim: 128
+          output_dim: 768
 
 data:
   target: main.DataModuleFromConfig
@@ -91,8 +91,7 @@ data:
     num_workers: 16
     #num_val_workers: 0 # Avoid a weird val dataloader issue
     train:
-      #target: ldm.data.deepfashion.DeepFashionKeypointFaceEmbed
-      target: ldm.data.deepfashion.DeepFashionKeypoint
+      target: ldm.data.deepfashion.DeepFashionKeypointFaceEmbed
       params:
         pickle_file: data/deepfashion/deepfashion_1.pickle
         folder: /home/soon/datasets/deepfashion/img_256
@@ -100,8 +99,7 @@ data:
         test_size: 64
 
     validation:
-      #target: ldm.data.deepfashion.DeepFashionKeypointFaceEmbed
-      target: ldm.data.deepfashion.DeepFashionKeypoint
+      target: ldm.data.deepfashion.DeepFashionKeypointFaceEmbed
       params:
         pickle_file: data/deepfashion/deepfashion_1.pickle
         folder: /home/soon/datasets/deepfashion/img_256
@@ -119,36 +117,36 @@ lightning:
       save_top_k: 1
       monitor: val/loss
 
-  # callbacks:
-  #   image_logger:
-  #     target: main.ImageLogger
-  #     params:
-  #       batch_frequency: 1000
-  #       max_images: 8
-  #       increase_log_steps: False
-  #       log_first_step: True
-  #       #log_all_val: False #True
-  #       log_cond_keys: 
-  #         - pose_image
-  #         - face_image
-  #       log_images_kwargs:
-  #         use_ema_scope: True
-  #         inpaint: False
-  #         plot_progressive_rows: False
-  #         plot_diffusion_rows: False
-  #         N: 8
-  #         unconditional_guidance_scale: 3.0
-  #         unconditional_guidance_label: [""]
-  #   early_stopping:
-  #     target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
-  #     params:
-  #       monitor: val/loss
-  #       mode: min
-  #       patience: 3
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 2000
+        max_images: 8
+        increase_log_steps: False
+        log_first_step: True
+        #log_all_val: False #True
+        log_cond_keys: 
+          - pose_image
+          - face_image
+        log_images_kwargs:
+          use_ema_scope: True
+          inpaint: False
+          plot_progressive_rows: False
+          plot_diffusion_rows: False
+          N: 8
+          unconditional_guidance_scale: 3.0
+          unconditional_guidance_label: [""]
+    early_stopping:
+      target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
+      params:
+        monitor: val/loss
+        mode: min
+        patience: 3
 
   trainer:
     benchmark: True
-    num_sanity_val_steps: 0
+    num_sanity_val_steps: 1
     accumulate_grad_batches: 1
-    max_epochs: 100
+    #max_epochs: 100
     #max_steps: 40000

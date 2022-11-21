@@ -370,11 +370,9 @@ class ImageLogger(Callback):
                         images[k] = torch.clamp(images[k], -1., 1.)
 
             for log_cond_key in  self.log_cond_keys:
-                if log_cond_key == 'pose_image':
-                    cond_images = batch[log_cond_key][:self.max_images].detach().cpu()
-                    images[log_cond_key] = rearrange(cond_images,'b h w c -> b c h w' )
-                else:
-                    images[log_cond_key] = batch[log_cond_key]
+                cond_images = batch[log_cond_key][:self.max_images].detach().cpu()
+                images[log_cond_key] = rearrange(cond_images,'b h w c -> b c h w' )
+
             self.log_local(pl_module.logger.save_dir, split, images,
                            pl_module.global_step, pl_module.current_epoch, batch_idx)
 

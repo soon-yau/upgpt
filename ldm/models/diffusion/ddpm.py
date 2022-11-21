@@ -17,6 +17,7 @@ from functools import partial
 from tqdm import tqdm
 from torchvision.utils import make_grid
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from torch.nn import ModuleList
 
 from ldm.util import log_txt_as_img, exists, default, ismap, isimage, mean_flat, count_params, instantiate_from_config
 from ldm.modules.ema import LitEma
@@ -448,15 +449,17 @@ class LatentDiffusion(DDPM):
         ignore_keys = kwargs.pop("ignore_keys", [])
 
         extra_cond_stages = kwargs.pop('extra_cond_stages', None)
+
+        super().__init__(conditioning_key=conditioning_key, *args, **kwargs)
+
         if extra_cond_stages:
             model_configs = extra_cond_stages.values()
-            self.extra_cond_models = [instantiate_from_config(config) for config in model_configs]
+            self.extra_cond_models = ModuleList([instantiate_from_config(config) for config in model_configs])
             self.extra_cond_keys = [config['cond_stage_key'] for config in model_configs]
         else:
             self.extra_cond_models = []
             self.extra_cond_keys = []
 
-        super().__init__(conditioning_key=conditioning_key, *args, **kwargs)
         self.concat_mode = concat_mode
         self.cond_stage_trainable = cond_stage_trainable
         self.cond_stage_key = cond_stage_key
@@ -666,8 +669,6 @@ class LatentDiffusion(DDPM):
     def get_input(self, batch, k, return_first_stage_outputs=False, force_c_encode=False,
                   cond_key=None, return_original_cond=False, bs=None):
         x = super().get_input(batch, k)
-        import pdb
-        pdb.set_trace()        
         if bs is not None:
             x = x[:bs]
         x = x.to(self.device)
