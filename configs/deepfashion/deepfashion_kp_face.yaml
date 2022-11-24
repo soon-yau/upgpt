@@ -97,6 +97,7 @@ data:
         folder: /home/soon/datasets/deepfashion/img_256
         is_train: True
         test_size: 64
+        random_drop: 0.1
 
     validation:
       target: ldm.data.deepfashion.DeepFashionKeypointFaceEmbed
@@ -112,7 +113,7 @@ lightning:
   modelcheckpoint:
     params:
       #every_n_train_steps: 1000
-      save_last: true
+      save_last: True
       every_n_epochs: 1
       save_top_k: 1
       monitor: val/loss
@@ -137,12 +138,12 @@ lightning:
           N: 8
           unconditional_guidance_scale: 3.0
           unconditional_guidance_label: [""]
-    early_stopping:
-      target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
-      params:
-        monitor: val/loss
-        mode: min
-        patience: 3
+    # early_stopping:
+    #   target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
+    #   params:
+    #     monitor: val/loss
+    #     mode: min
+    #     patience: 3
 
   trainer:
     benchmark: True

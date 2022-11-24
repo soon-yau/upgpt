@@ -173,9 +173,10 @@ class DeepFashionKeypoint(Loader):
 
 class DeepFashionKeypointFaceEmbed(Loader):
 
-    def __init__(self, pickle_file, folder, is_train, shuffle=False, test_size=0.005, test_split_random=8):
+    def __init__(self, pickle_file, folder, is_train, shuffle=False, 
+                random_drop = 0.0, test_size=0.005, test_split_random=8):
         super().__init__(pickle_file, folder,shuffle)
-
+        self.random_drop = random_drop
         self.df['num_keypoints']=self.df.keypoints.map(lambda x: x.shape[0])
         self.df = self.df[self.df['num_keypoints']==1] 
         train, test = train_test_split(self.df, test_size=test_size, random_state=test_split_random)
@@ -206,11 +207,16 @@ class DeepFashionKeypointFaceEmbed(Loader):
         pose_image = self.pose_visualizer.convert(sample.keypoints)
         pose_image = rearrange(pose_image * 2. - 1., 'c h w -> h w c')
 
+        # random drop pose
+        if self.random_drop > 0 and np.random.uniform() < self.random_drop:
+            pose_image = torch.zeros_like(pose_image)
+            keypoints = torch.zeros_like(keypoints)
+
         # Load embedding
         try:
             face_file = image_file.replace('img_256', 'face')
             face_image = PIL.Image.open(face_file)
-            face_image = T.Resize(64)(face_image)
+            face_image = T.Resize((64,64))(face_image)
             face_image = self.image_transform(face_image)
             embed_file = face_file.replace('.jpg', '.p')
             with open(embed_file, 'rb') as f:
@@ -218,6 +224,10 @@ class DeepFashionKeypointFaceEmbed(Loader):
                 embed = T.ToTensor()(np.expand_dims(embed, 0)).view((1,-1))
         except Exception as e:
             return self.skip_sample(ind)
+
+        if self.random_drop > 0 and np.random.uniform() < self.random_drop:
+            face_image = torch.zeros_like(face_image)
+            embed = torch.zeros_like(embed)
 
         return {"image": image, "txt": description, 'pose':keypoints, 'pose_image':pose_image, \
                 "face_image":face_image, 'face_embed':embed}

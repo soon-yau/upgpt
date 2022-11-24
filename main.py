@@ -225,7 +225,9 @@ class DataModuleFromConfig(pl.LightningDataModule):
                           shuffle=shuffle)
 
     def _test_dataloader(self, shuffle=False):
-        is_iterable_dataset = isinstance(self.datasets['train'], Txt2ImgIterableBaseDataset)
+        if 'test' not in self.datasets:
+            return None
+        is_iterable_dataset = isinstance(self.datasets['test'], Txt2ImgIterableBaseDataset)
         if is_iterable_dataset or self.use_worker_init_fn:
             init_fn = worker_init_fn
         else:
