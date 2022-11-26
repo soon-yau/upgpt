@@ -1,4 +1,4 @@
-import os
+import os, sys
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms as T
@@ -12,6 +12,8 @@ import pickle
 from sklearn.model_selection import train_test_split
 import numpy as np
 from einops import rearrange
+from glob import glob
+import random
 
 class TextOnly(Dataset):
     def __init__(self, captions, output_size, image_key="image", caption_key="txt", n_gpus=1):
@@ -71,18 +73,21 @@ class Loader(Dataset):
 
 class DeepFashionSMPL(Loader):
 
-    def __init__(self, pickle_file, folder, smpl_folder, is_train, shuffle=False, \
-                random_drop=0.0, test_size=0.005, test_split_random=8):
+    def __init__(self, pickle_file, folder, 
+                smpl_folder, face_folder=None, is_train=True, shuffle=False, \
+                random_drop=0.0, test_size=0.005, test_split_random=None):
         super().__init__(pickle_file, folder, shuffle)
         self.random_drop = random_drop  # drop smpl condition 
-        self.smpl_folder = Path(smpl_folder)
+        self.smpl_folder = smpl_folder
+        self.face_folder = face_folder
+        self.use_face = face_folder != None
         self.df['num_keypoints']=self.df.keypoints.map(lambda x: x.shape[0])
         self.df = self.df[self.df['num_keypoints']==1] 
 
         train, test = train_test_split(self.df, test_size=test_size, random_state=test_split_random)
         self.df = train if is_train else test
 
-        self.root_dir = Path(folder)
+        self.image_dir = folder
         self.image_transform = T.Compose([
             #T.Resize((512,512)),
             T.ToTensor(),
@@ -90,15 +95,17 @@ class DeepFashionSMPL(Loader):
             #T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
 
     def __getitem__(self, ind):
-        sample = self.df.iloc[ind]
-        image_file = self.root_dir / sample.image
-        smpl_image_file = str(self.smpl_folder/sample.image)
-        smpl_file = smpl_image_file.replace('.jpg','.p')
-        image = PIL.Image.open(str(image_file))
-        image = image.convert('RGB') if image.mode != 'RGB' else image
-        image = self.image_transform(image)
-
         try:
+
+            sample = self.df.iloc[ind]
+            image_file = os.path.join(self.image_dir, sample.image)
+            image = PIL.Image.open(image_file)
+            image = image.convert('RGB') if image.mode != 'RGB' else image
+            image = self.image_transform(image)
+
+            smpl_image_file = os.path.join(self.smpl_folder, sample.image)
+            smpl_file = smpl_image_file.replace('.jpg','.p')
+
             smpl_image = PIL.Image.open(smpl_image_file)
             #smpl_image = smpl_image.convert('RGB') if smpl_image.mode != 'RGB' else smpl_image
             smpl_image = self.image_transform(smpl_image)
@@ -110,10 +117,25 @@ class DeepFashionSMPL(Loader):
                 pred_camera = np.expand_dims(smpl_params[0]['pred_camera'], 0)
                 smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
                 smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
+
+            if self.use_face:
+                face_files = image_file.replace(self.image_dir, self.face_folder)
+                face_folder = os.path.dirname(face_files)
+                face_embed_files = glob(os.path.join(face_folder,'*.p'))
+                face_embed_file = random.choice(face_embed_files)
+                face_file = face_embed_file.replace('.p', '.jpg')
+
+                face_image = PIL.Image.open(face_file)
+                #face_image = T.Resize((64,64))(face_image)
+                face_image = self.image_transform(face_image)
+                with open(face_embed_file, 'rb') as f:
+                    face_embed = pickle.load(f)
+                    face_embed = T.ToTensor()(np.expand_dims(face_embed, 0)).view((1,-1))
+                
         except Exception as e:
-            print(e)
-            print(f"An exception occurred trying to load SMPL.")
-            print(f"Skipping index {ind}")
+            #print(e)
+            #print(f"An exception occurred trying to load SMPL or Face embedding.")
+            #print(f"Skipping index {ind}")
             return self.skip_sample(ind)
 
         descriptions = sample.text.copy()
@@ -130,8 +152,19 @@ class DeepFashionSMPL(Loader):
         if self.random_drop > 0 and np.random.uniform() < self.random_drop:
             smpl_image = torch.zeros_like(smpl_image)
             smpl_pose = torch.zeros_like(smpl_pose)
-        return {"image": image, "txt": description, 'smpl':smpl_pose, 'smpl_image':smpl_image}
-        #return image, description, smpl_image, smpl_pose
+
+
+        return_d = {"image": image, "txt": description, 'smpl':smpl_pose, 'smpl_image':smpl_image}
+
+        if self.use_face:
+            if self.random_drop > 0 and np.random.uniform() < self.random_drop:
+                face_image = torch.zeros_like(face_image)
+                face_embed = torch.zeros_like(face_embed)
+
+            return_d["face_image"] = face_image
+            return_d['face_embed'] = face_embed
+
+        return return_d
 
 
 class DeepFashionKeypoint(Loader):
