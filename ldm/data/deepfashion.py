@@ -75,9 +75,11 @@ class DeepFashionSMPL(Loader):
 
     def __init__(self, pickle_file, folder, 
                 smpl_folder, face_folder=None, is_train=True, shuffle=False, \
-                random_drop=0.0, test_size=0.005, test_split_random=None):
+                random_drop=0.0, test_size=0.005, test_split_random=None,
+                random_face=None):
         super().__init__(pickle_file, folder, shuffle)
         self.random_drop = random_drop  # drop smpl condition 
+        self.random_face = random_face
         self.smpl_folder = smpl_folder
         self.face_folder = face_folder
         self.use_face = face_folder != None
@@ -96,7 +98,6 @@ class DeepFashionSMPL(Loader):
 
     def __getitem__(self, ind):
         try:
-
             sample = self.df.iloc[ind]
             image_file = os.path.join(self.image_dir, sample.image)
             image = PIL.Image.open(image_file)
@@ -119,11 +120,19 @@ class DeepFashionSMPL(Loader):
                 smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
             if self.use_face:
-                face_files = image_file.replace(self.image_dir, self.face_folder)
-                face_folder = os.path.dirname(face_files)
-                face_embed_files = glob(os.path.join(face_folder,'*.p'))
-                face_embed_file = random.choice(face_embed_files)
-                face_file = face_embed_file.replace('.p', '.jpg')
+                face_file = image_file.replace(self.image_dir, self.face_folder)
+                face_folder = os.path.dirname(face_file)
+                face_files = glob(os.path.join(face_folder,'*.jpg'))
+
+                if self.random_face == 'front':
+                    front_faces = [x for x in face_files if self.random_face in x]
+                    if len(front_faces) > 0:
+                        face_file = front_faces[0]
+
+                elif self.random_face == True:
+                    face_file = random.choice(face_files)
+
+                face_embed_file = face_file.replace('.jpg', '.p')
 
                 face_image = PIL.Image.open(face_file)
                 #face_image = T.Resize((64,64))(face_image)

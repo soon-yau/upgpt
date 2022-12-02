@@ -544,7 +544,7 @@ class LatentDiffusion(DDPM):
 
     def _get_denoise_row_from_list(self, samples, desc='', force_no_decoder_quantization=False):
         denoise_row = []
-        for zd in tqdm(samples, desc=desc):
+        for zd in tqdm(samples['x_inter'], desc=desc):
             denoise_row.append(self.decode_first_stage(zd.to(self.device),
                                                             force_not_quantize=force_no_decoder_quantization))
         n_imgs_per_row = len(denoise_row)
@@ -1259,7 +1259,7 @@ class LatentDiffusion(DDPM):
         if ddim:
             ddim_sampler = DDIMSampler(self)
             shape = (self.channels, self.image_size, self.image_size)
-            samples, intermediates =ddim_sampler.sample(ddim_steps,batch_size,
+            samples, intermediates = ddim_sampler.sample(ddim_steps,batch_size,
                                                         shape,cond,verbose=False,**kwargs)
 
         else:
@@ -1272,7 +1272,7 @@ class LatentDiffusion(DDPM):
     @torch.no_grad()
     def log_images(self, batch, N=8, n_row=4, sample=True, ddim_steps=200, ddim_eta=1., return_keys=None,
                    quantize_denoised=True, inpaint=True, plot_denoise_rows=False, plot_progressive_rows=True,
-                   plot_diffusion_rows=True, **kwargs):
+                   plot_diffusion_rows=True, seed=None, log_every_t=100, **kwargs):
 
         use_ddim = ddim_steps is not None
 
@@ -1321,9 +1321,18 @@ class LatentDiffusion(DDPM):
 
         if sample:
             # get denoise row
+            if seed:
+                # fix initial noise for every sample in the batch
+                torch.manual_seed(seed)                
+                x_T = torch.randn((1, self.channels, self.image_size, self.image_size), device=self.device)
+                x_T = x_T.repeat((N,1,1,1))
+            else:
+                x_T = None
+
             with self.ema_scope("Plotting"):
                 samples, z_denoise_row = self.sample_log(cond=c,batch_size=N,ddim=use_ddim,
-                                                         ddim_steps=ddim_steps,eta=ddim_eta)
+                                                         ddim_steps=ddim_steps,eta=ddim_eta,
+                                                         log_every_t=log_every_t, x_T=x_T)
                 # samples, z_denoise_row = self.sample(cond=c, batch_size=N, return_intermediates=True)
             x_samples = self.decode_first_stage(samples)
             log["samples"] = x_samples

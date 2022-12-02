@@ -80,7 +80,7 @@ model:
         cond_stage_key: "face_embed"    
         target: ldm.modules.poses.poses.LinearProject
         params:
-          input_dim: 2622
+          input_dim: 512
           output_dim: 768
 
 
@@ -96,7 +96,7 @@ data:
         pickle_file: data/deepfashion/pose_openpose_deepfashion_inshop.pickle
         folder: /home/soon/datasets/deepfashion_inshop/img
         smpl_folder: /home/soon/datasets/deepfashion_inshop/img/smpl
-        face_folder: /home/soon/datasets/deepfashion/inshop_vggface
+        face_folder: /home/soon/datasets/deepfashion/inshop_facenet512
         is_train: True
         test_size: 64
         random_drop: 0.1
@@ -107,7 +107,7 @@ data:
         pickle_file: data/deepfashion/pose_openpose_deepfashion_inshop.pickle
         folder: /home/soon/datasets/deepfashion_inshop/img
         smpl_folder: /home/soon/datasets/deepfashion_inshop/img/smpl
-        face_folder: /home/soon/datasets/deepfashion/inshop_vggface
+        face_folder: /home/soon/datasets/deepfashion/inshop_facenet512
         test_size: 64
         is_train: False
 
