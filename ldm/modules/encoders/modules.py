@@ -227,6 +227,29 @@ class FrozenClipImageEmbedder(nn.Module):
         # x is assumed to be in range [-1,1]
         return self.model.encode_image(self.preprocess(x))
 
+class FrozenClipImageEmbedder2(nn.Module):
+    """
+        Uses the CLIP image encoder.
+        """
+    def __init__(
+            self,
+            model='ViT-L/14',
+            jit=False,
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+        ):
+        super().__init__()
+        self.model, _ = clip.load(name=model, device=device, jit=jit)
+
+        self.model = self.model.eval()
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def forward(self, x):
+        b, n, c, h, w = x.shape
+        batch = rearrange(x, 'b n c h w -> (b n) c h w ')
+        ret = self.model.encode_image(batch)
+        return rearrange(ret, '(b n) w -> b n w ', b=b, n=n)
+
 
 if __name__ == "__main__":
     from ldm.util import count_params
