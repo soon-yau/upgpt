@@ -9,7 +9,7 @@ model:
     timesteps: 1000
     first_stage_key: "image"
     cond_stage_key: "txt"
-    image_size: [32,24]
+    image_size: [64,48]
     channels: 4
     cond_stage_trainable: false   # Note: different from the one we trained before
     conditioning_key: crossattn
@@ -45,8 +45,8 @@ model:
     first_stage_config:
       target: ldm.models.autoencoder.AutoencoderKL
       params:
-        ckpt_path: models/first_stage_models/kl-f8-deepfashion/deepfashion_v1.ckpt
-        #ckpt_path: models/first_stage_models/kl-f8/model.ckpt
+        #ckpt_path: models/first_stage_models/kl-f8-deepfashion/deepfashion_v1.ckpt
+        ckpt_path: models/first_stage_models/kl-f8/model.ckpt
         embed_dim: 4
         monitor: val/rec_loss
         ddconfig:
@@ -91,8 +91,8 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 16
-    num_workers: 16
+    batch_size: 4
+    num_workers: 4
     #num_val_workers: 0 # Avoid a weird val dataloader issue
     train:
       target: ldm.data.deepfashion_mm.DeepFashionMM
@@ -101,9 +101,9 @@ data:
         pose: smpl
         # pad (1101,750) to (1101, 826), resize to (512,384), downsample to (64,48)
         pad: [38, 0]
-        image_sizes: [256, 192]
+        image_sizes: [512, 384] #[256, 192]
         is_train: True
-        test_size: 64
+        test_size: 128
         test_split_seed: 3883
 
     validation:
@@ -112,7 +112,7 @@ data:
         folder: "/home/soon/datasets/deepfashion_multimodal"
         pose: smpl
         pad: [38, 0]
-        image_sizes: [256, 192]
+        image_sizes: [512, 384]
         is_train: False
         test_size: 128
         test_split_seed: 3883
