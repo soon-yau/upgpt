@@ -254,3 +254,51 @@ class DeepFashionMM(Loader):
         
         
         return data
+
+
+class DeepFashionMMImageOnly(Loader):
+    
+    def __init__(self, 
+                folder, 
+                image_sizes, 
+                pose=None,
+                is_train=True,
+                test_size=64, 
+                test_split_seed=None,
+                pad=None,
+                **kwargs):
+        super().__init__(folder, **kwargs)
+        self.root = Path(folder)
+        images = glob(str(self.root/'images/*.jpg'))
+        
+        train, test = train_test_split(images, test_size=test_size, random_state=test_split_seed)
+        self.images = train if is_train else test
+        self.image_sizes = image_sizes
+        self.image_transform = T.Compose([
+            T.Resize(image_sizes, antialias=True),
+            T.ToTensor(),
+            T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
+        self.pad = pad
+        self.pose = pose
+        self.pad = None if self.pad is None else tuple(self.pad)
+        
+    def __getitem__(self, index):
+        try:
+
+            image_file = self.images[index]
+            image_id = os.path.basename(image_file)
+            image = Image.open(image_file)
+            # image
+            if self.pad:
+                image = T.Pad(self.pad, padding_mode='edge')(image)
+            image = self.image_transform(image)
+            data = {"image": image}
+
+        except Exception as e:
+            #print(e)
+            #print(f"An exception occurred trying to load SMPL or Face embedding.")
+            #print(f"Skipping index {ind}")
+            return self.skip_sample(index)            
+        
+        
+        return data
