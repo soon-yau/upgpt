@@ -179,18 +179,21 @@ class FrozenCLIPTextEmbedder(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
-    def forward(self, text):
-        tokens = clip.tokenize(text).to(self.device)
-        z = self.model.encode_text(tokens)
-        if self.normalize:
-            z = z / torch.linalg.norm(z, dim=1, keepdim=True)
-        return z
+    def forward(self, texts):
+        zs = []
+        for text in texts:
+            tokens = clip.tokenize(text).to(self.device)
+            z = self.model.encode_text(tokens)
+            if self.normalize:
+                z = z / torch.linalg.norm(z, dim=1, keepdim=True)
+            zs.append(z)
+        return torch.stack(zs)
 
     def encode(self, text):
         z = self(text)
         if z.ndim==2:
             z = z[:, None, :]
-        z = repeat(z, 'b 1 d -> b k d', k=self.n_repeat)
+            z = repeat(z, 'b 1 d -> b k d', k=self.n_repeat)
         return z
 
 

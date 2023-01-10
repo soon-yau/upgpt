@@ -699,7 +699,9 @@ class LatentDiffusion(DDPM):
 
             # additional conditions
             for extra_cond_key, extra_cond_model in zip(self.extra_cond_keys, self.extra_cond_models):
-                xc2 = batch.get(extra_cond_key).to(self.device)
+                xc2 = batch.get(extra_cond_key)
+                if type(xc2) == torch.Tensor:
+                    xc2 = xc2.to(self.device)
                 c2 = extra_cond_model.forward(xc2)
                 c = torch.concat((c, c2), 1)
 
