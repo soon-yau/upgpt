@@ -46,11 +46,12 @@ class DeepfashionMMSegment:
             23: 'tie'}
         self.label2id = dict(zip(self.label_dict.values(), self.label_dict.keys()))
         self.segm_groups = [
-            ['background'],
             [ 'hair', 'eyeglass','face','headwear'],
+            ['background'], # do not change this            
             [ 'top','outer','rompers'],
             ['skirt','dress','leggings','pants'],
-            ['footwear','socks'],   
+            ['footwear','socks'],
+            ['bag']
         ]
 
         self.segm_id_groups = []
@@ -65,7 +66,7 @@ class DeepfashionMMSegment:
             T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
         ])
         
-    def get_mask(self, image, segm, mask_ids):
+    def get_mask(self, segm, mask_ids):
         mask = np.full(segm.shape, False)
         for mask_id in mask_ids:
             mask |= segm== mask_id    
@@ -106,13 +107,23 @@ class DeepfashionMMSegment:
         bottom = min(height, bottom+margin)
         return {'left':left, 'right':right, 'top':top, 'bottom':bottom}
 
-    def crop(self, image, # torch tensor
+    def crop(self, input_image, # torch tensor
              mask, 
-             margin=100):
+             margin=100,
+             is_background=False):
+        image = torch.clone(input_image).detach()
         mask_range = self.get_mask_range(mask, margin)
+        
+        if is_background: # fill the mask with average background color
+            new_images = []
+            for i in range(3):
+                mean_color = torch.masked_select(image[i], mask==True).mean()
+                new_images.append(image[i].masked_fill(mask==False, mean_color))
 
-        cropped = (image * mask)[:,mask_range['top']:mask_range['bottom'], 
-                            mask_range['left']:mask_range['right']]
+            cropped = torch.stack(new_images)
+        else:    
+            cropped = (image * mask)[:,mask_range['top']:mask_range['bottom'], 
+                                mask_range['left']:mask_range['right']]
         
         return self.clip_transform(cropped)
 
@@ -120,12 +131,13 @@ class DeepfashionMMSegment:
 
         image = T.ToTensor()(image)
         cropped_images = []
-        for segm_group in self.segm_id_groups:
-            mask = torch.from_numpy(self.get_mask(image, segm, segm_group))
-            cropped = self.crop(image, mask)
+        for i, segm_group in enumerate(self.segm_id_groups):
+            mask = torch.from_numpy(self.get_mask(segm, segm_group))
+            cropped = self.crop(image, mask, is_background=i==1)
             cropped_images.append(cropped)
             
         return torch.stack(cropped_images)
+
 
 class Loader(Dataset):
     def __init__(self, folder, shuffle=False):
@@ -176,9 +188,13 @@ class DeepFashionMM(Loader):
         segm_ids = set([os.path.basename(image).split('_segm.png')[0] for image in segm])
         no_segm_ids = image_ids ^ segm_ids
         np.random.seed(test_split_seed)
+
+        '''
         select_no_segm_ids = np.random.choice(list(no_segm_ids), 
                                               size=int(no_segm_percent*len(segm_ids)), 
                                               replace=False)
+        '''
+        select_no_segm_ids = no_segm_ids
         select_ids = list(select_no_segm_ids) + list(segm_ids)
         
         images = [f'{self.root}/images/{x}.jpg' for x in select_ids]
@@ -214,10 +230,16 @@ class DeepFashionMM(Loader):
             # segmentation
             segm_file = image_file.replace('images/','segm/').replace('.jpg', '_segm.png')
             
-            segm = np.array(Image.open(segm_file))
-
-            styles = self.segmentor.forward(image, segm)
-            data.update({'styles':styles})
+            if os.path.exists(segm_file):
+                segm_image = Image.open(segm_file)
+                segm = np.array(segm_image)
+                styles = self.segmentor.forward(image, segm)
+            else:
+                empty = np.zeros(self.image_sizes, dtype=np.uint8)
+                segm_image = Image.fromarray(empty, mode='L')
+                styles = torch.zeros(len(self.segmentor.segm_groups), 3, 224, 224)
+                
+            data.update({'styles':styles, 'styles_image':self.image_transform(segm_image)})
         
             # image
             if self.pad:

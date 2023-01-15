@@ -1,0 +1,73 @@
+model:
+  base_learning_rate: 4.5e-6
+  target: ldm.models.autoencoder.AutoencoderKL
+  params:
+    monitor: "val/rec_loss"
+    embed_dim: 4
+    lossconfig:
+      target: ldm.modules.losses.LPIPSWithDiscriminator
+      params:
+        disc_start: 50001
+        kl_weight: 0.000001
+        disc_weight: 0.5
+
+    ddconfig:
+      double_z: True
+      z_channels: 4
+      resolution: 256
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult: [ 1,2,4,4]  # num_down = len(ch_mult)-1
+      num_res_blocks: 2
+      attn_resolutions: [ ]
+      dropout: 0.0
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 8
+    num_workers: 8
+    #num_val_workers: 0 # Avoid a weird val dataloader issue
+    train:
+      target: ldm.data.deepfashion_inshop.DeepFashionImageOnly
+      params:
+        folder: "/home/soon/datasets/deepfashion_inshop/img_highres/"
+        # pad (1101,750) to (1101, 826), resize to (512,384), downsample to (64,48)
+        pad: [38, 0]
+        image_sizes: [256, 192] #[512, 384]
+        is_train: True
+        test_size: 100
+        test_split_seed: 8
+
+    validation:
+      target: ldm.data.deepfashion_inshop.DeepFashionImageOnly
+      params:
+        folder: "/home/soon/datasets/deepfashion_inshop/img_highres/"
+        # pad (1101,750) to (1101, 826), resize to (512,384), downsample to (64,48)
+        pad: [38, 0]
+        image_sizes: [256, 192] #[512, 384]
+        is_train: True
+        test_size: 100
+        test_split_seed: 8
+
+lightning:
+  modelcheckpoint:
+    params:
+      #every_n_train_steps: 5000
+      save_last: true
+      every_n_epochs: 1
+      save_top_k: 1
+      monitor: val/rec_loss
+
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 5000
+        max_images: 6
+        increase_log_steps: True
+
+  trainer:
+    benchmark: True
+    accumulate_grad_batches: 2

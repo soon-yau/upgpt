@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 5.0e-05
+  base_learning_rate: 4.5e-05
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
@@ -45,8 +45,8 @@ model:
     first_stage_config:
       target: ldm.models.autoencoder.AutoencoderKL
       params:
-        #ckpt_path: models/first_stage_models/kl-f8-deepfashion/deepfashion_v1.ckpt
-        ckpt_path: models/first_stage_models/kl-f8/model.ckpt
+        ckpt_path: models/first_stage_models/kl-f8-deepfashion/deepfashion_mm_v1.ckpt
+        #ckpt_path: models/first_stage_models/kl-f8/model.ckpt
         embed_dim: 4
         monitor: val/rec_loss
         ddconfig:
@@ -138,6 +138,7 @@ lightning:
         #log_all_val: False #True
         log_cond_keys: 
          - smpl_image
+         - styles_image
         #  - face_image
         log_images_kwargs:
           use_ema_scope: True
