@@ -47,7 +47,7 @@ class DeepFashion(Loader):
     
     def __init__(self, 
                 folder,
-                #image_dir,
+                image_dir,
                 data_file, 
                 image_sizes=None, 
                 pose=None,
@@ -58,7 +58,7 @@ class DeepFashion(Loader):
                 **kwargs):
         super().__init__(folder, **kwargs)
         self.root = Path(folder)
-        self.image_root = self.root/'img_highres'
+        self.image_root = self.root/image_dir
         self.pose_root = self.root/'smpl'
         self.style_root = self.root/'styles'
         self.texts = json.load(open(self.root/'captions.json'))
@@ -76,9 +76,9 @@ class DeepFashion(Loader):
         self.image_transform = T.Compose(transform_list + [
             T.ToTensor(),
             T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
-        self.pad = pad
+
         self.pose = pose
-        self.pad = None if self.pad is None else tuple(self.pad)
+        self.pad = None if pad is None else tuple(pad)
         
         self.style_names = ['face', 'background', 'top', 'bottom', 'shoes', 'accesories']
         self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
