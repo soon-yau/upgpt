@@ -115,6 +115,15 @@ data:
         test_size: 200
         test_split_seed: 3883
 
+    test:
+      target: ldm.data.deepfashion_inshop.DeepFashionTest
+      params:
+        folder: "/home/soon/datasets/deepfashion_inshop"
+        image_dir: img_256
+        data_file: test.csv
+        test_file: pairs-test.csv
+        pose: smpl
+
 lightning:
   find_unused_parameters: False
 

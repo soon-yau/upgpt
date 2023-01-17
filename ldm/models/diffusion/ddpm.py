@@ -8,7 +8,10 @@ https://github.com/CompVis/taming-transformers
 
 import torch
 import torch.nn as nn
+from torchvision import transforms as T
 import numpy as np
+import os
+from pathlib import Path
 import pytorch_lightning as pl
 from torch.optim.lr_scheduler import LambdaLR
 from einops import rearrange, repeat
@@ -377,6 +380,7 @@ class DDPM(pl.LightningModule):
         denoise_grid = make_grid(denoise_grid, nrow=n_imgs_per_row)
         return denoise_grid
 
+
     @torch.no_grad()
     def log_images(self, batch, N=8, n_row=2, sample=True, return_keys=None, **kwargs):
         log = dict()
@@ -725,6 +729,7 @@ class LatentDiffusion(DDPM):
             out.extend([x, xrec])
         if return_original_cond:
             out.append(xc)
+
         return out
 
     @torch.no_grad()
@@ -1271,15 +1276,51 @@ class LatentDiffusion(DDPM):
 
         return samples, intermediates
 
+    @torch.no_grad()
+    def test_step(self, batch, batch_idx):
+        denorm = T.Compose([ T.Normalize(mean = [ 0., 0., 0. ],  std = [ 1/0.226862954, 1/0.26130258, 1/0.27577711 ]),
+                             T.Normalize(mean = [ -0.48145466, -0.4578275, -0.40821073], std = [ 1., 1., 1. ]),      ])
+
+        log_root = Path(self.logger.save_dir)/'results/samples'
+        concat_root = Path(self.logger.save_dir)/'results/concats'
+        style_root = Path(self.logger.save_dir)/'results/styles'
+
+        os.makedirs(str(log_root), exist_ok=True)
+        os.makedirs(str(concat_root), exist_ok=True) 
+        os.makedirs(str(style_root), exist_ok=True)        
+        log = self.log_images(batch, N=100)
+        
+        images = log['samples'].detach()
+        images = torch.clamp(images, -1., 1.) * 0.5 + 0.5
+
+        for k in ['smpl_image', 'src_image', 'image']:
+            batch[k] = rearrange(batch[k],'b h w c -> b c h w' ) * 0.5 + 0.5
+            
+        for test_index, sample, smpl_image, src_image, target_image in \
+                zip(batch['test_id'], images, batch['smpl_image'], batch['src_image'], batch['image']):
+            concat = torch.cat([src_image, sample, target_image, smpl_image], 2)
+            T.ToPILImage()(concat).save(concat_root/f'{test_index}.jpg')
+            T.ToPILImage()(sample).save(log_root/f'{test_index}.jpg')
+        
+        
+        for test_index, style_batch in zip(batch['test_id'], batch['styles']):
+            style_images = []
+            for style_image in style_batch:
+                style_images.append(denorm(style_image))
+
+            style_images = torch.cat(style_images, 2)
+            T.ToPILImage()(style_images).save(style_root/f'{test_index}.jpg')
+        
 
     @torch.no_grad()
     def log_images(self, batch, N=8, n_row=4, sample=True, ddim_steps=200, ddim_eta=1., return_keys=None,
-                   quantize_denoised=True, inpaint=True, plot_denoise_rows=False, plot_progressive_rows=True,
-                   plot_diffusion_rows=True, seed=None, **kwargs):
+                   quantize_denoised=False, inpaint=False, plot_denoise_rows=False, plot_progressive_rows=False,
+                   plot_diffusion_rows=False, seed=None, **kwargs):
 
         use_ddim = ddim_steps is not None
 
         log = dict()
+
         z, c, x, xrec, xc = self.get_input(batch, self.first_stage_key,
                                            return_first_stage_outputs=True,
                                            force_c_encode=True,

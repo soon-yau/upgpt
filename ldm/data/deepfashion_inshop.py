@@ -20,10 +20,6 @@ class Loader(Dataset):
     def __init__(self, folder, shuffle=False):
         super().__init__()
         self.shuffle = shuffle
-
-    
-    def __len__(self):
-        return len(self.df)
     
     def random_sample(self):
         return self.__getitem__(randint(0, self.__len__() - 1))
@@ -87,21 +83,23 @@ class DeepFashion(Loader):
             T.ToTensor(),
             self.clip_norm
         ])
-        
+
+    def __len__(self):
+        return len(self.df)
+
     def __getitem__(self, index):
         try:
             row = self.df.iloc[index]
             
             # text
             text = self.texts[row.text]
-            #print('0', row.image)
+
             # image
             image = self.image_transform(Image.open(self.image_root/row.image))
 
             # style images
             style_images = []
             for style_name in self.style_names:
-                #print('1', row.styles)
                 f_path = self.style_root/row.styles/f'{style_name}.jpg'
                 
                 if f_path.exists():
@@ -119,7 +117,6 @@ class DeepFashion(Loader):
   
             # SMPL
             if self.pose == 'smpl':
-                #print('2', row.pose)
                 pose_path = str(self.pose_root/row.pose)
                 smpl_image_file = pose_path + '.jpg'
                 smpl_file = pose_path + '.p'
@@ -146,6 +143,122 @@ class DeepFashion(Loader):
         
         return data
 
+class DeepFashionTest(Loader):
+    
+    def __init__(self, 
+                folder,
+                image_dir,
+                data_file,
+                test_file,                 
+                pose=None,
+                max_size=None,
+                image_sizes=None, 
+                pad=None,
+                **kwargs):
+        super().__init__(folder, **kwargs)
+        self.root = Path(folder)
+        self.image_root = self.root/image_dir
+        self.pose_root = self.root/'smpl'
+        self.style_root = self.root/'styles'
+        self.texts = json.load(open(self.root/'captions.json'))
+
+        self.df = pd.read_csv(data_file)
+        # temporary drop those without poses
+        self.df = self.df.drop(self.df[(self.df.pose == '')].index)
+        self.df = self.df.reset_index(drop=True)
+        self.df = self.df.set_index('image')
+
+
+        # test config fiile
+        self.test_df = pd.read_csv(test_file)
+        if max_size:
+            self.test_df = self.test_df.iloc[:max_size]
+
+        self.image_sizes = image_sizes
+        transform_list = [T.Resize(image_sizes)] if image_sizes else []
+        self.image_transform = T.Compose(transform_list + [
+            T.ToTensor(),
+            T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
+
+        self.pose = pose
+        self.pad = None if pad is None else tuple(pad)
+        
+        self.style_names = ['face', 'background', 'top', 'bottom', 'shoes', 'accesories']
+        self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
+                                    std=(0.26862954, 0.26130258, 0.27577711))
+        self.clip_transform = T.Compose([
+            T.ToTensor(),
+            self.clip_norm
+        ])
+        
+    def __len__(self):
+        return len(self.test_df)
+
+    def __getitem__(self, index):
+        try:
+            row = self.test_df.iloc[index]
+            
+            # src
+            source = self.df.loc[row['from']]
+            src_path = str(self.image_root/source.name)
+            source_image = self.image_transform(Image.open(src_path))
+            styles_path = source.styles
+
+            # target
+            target = self.df.loc[row['to']]
+            target_path = str(self.image_root/target.name)
+            text = self.texts[target.text]
+            pose_path = target.pose
+            target_image = self.image_transform(Image.open(target_path))
+
+            # style images
+            style_images = []
+            for style_name in self.style_names:
+                f_path = self.style_root/styles_path/f'{style_name}.jpg'
+                
+                if f_path.exists():
+                    style_image = self.clip_transform((Image.open(f_path)))
+                else:
+                    style_image = self.clip_norm(torch.zeros(3, 224, 224))
+                style_images.append(style_image)
+            style_images = torch.stack(style_images)  
+
+            data = {"test_id":  index,
+                    "src_image": source_image,
+                    "image": target_image, 
+                    "txt": text, 
+                    "styles":style_images}
+
+            # image
+            if self.pad:
+                image = T.Pad(self.pad, padding_mode='edge')(image)
+  
+            # SMPL
+            if self.pose == 'smpl':
+                pose_path = str(self.pose_root/pose_path)
+                smpl_image_file = pose_path + '.jpg'
+                smpl_file = pose_path + '.p'
+                smpl_image = Image.open(smpl_image_file)
+                smpl_image = self.image_transform(smpl_image)
+
+                with open(smpl_file, 'rb') as f:
+                    smpl_params = pickle.load(f)
+                    pred_pose = smpl_params[0]['pred_body_pose']
+                    pred_betas = smpl_params[0]['pred_betas']
+                    pred_camera = np.expand_dims(smpl_params[0]['pred_camera'], 0)
+                    smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
+                    smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
+
+                data.update({'smpl':smpl_pose, 'smpl_image':smpl_image})
+
+            return data
+
+        except Exception as e:
+            print(f"Skipping index {index}", e)
+            return self.skip_sample(index)            
+        
+        
+        return data
 
 class DeepFashionImageOnly(Loader):
     
