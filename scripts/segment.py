@@ -50,11 +50,13 @@ class DeepfashionMMSegment:
         
         self.label2id = dict(zip(self.label_dict.values(), self.label_dict.keys()))
         self.segm_groups = {
-            'face':[ 'hair', 'eyeglass','face','headwear'],
+            'face':[ 'hair', 'eyeglass','face'],
+            'headwear': ['headwear']
             'background':['background'],
-            'top':[ 'top','outer','rompers'],
-            'bottom':['skirt','dress','leggings','pants'],
+            'top':[ 'top','rompers','dress'],
+            'bottom':['skirt','dress','leggings','pants', 'belt'],
             'shoes':['footwear','socks'],
+            'outer': ['outer']
             'accesories':['bag']
             }
         
