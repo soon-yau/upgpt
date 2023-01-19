@@ -15,6 +15,7 @@ from einops import rearrange
 from glob import glob
 import random
 import json
+from scripts.segment import segm_groups
 
 class Loader(Dataset):
     def __init__(self, folder, shuffle=False):
@@ -76,7 +77,7 @@ class DeepFashion(Loader):
         self.pose = pose
         self.pad = None if pad is None else tuple(pad)
         
-        self.style_names = ['face', 'background', 'top', 'bottom', 'shoes', 'accesories']
+        self.style_names = list(segm_groups.keys())#['face', 'background', 'top', 'bottom', 'shoes', 'accesories']
         self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
                                     std=(0.26862954, 0.26130258, 0.27577711))
         self.clip_transform = T.Compose([

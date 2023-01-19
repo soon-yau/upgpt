@@ -18,10 +18,23 @@ from tqdm import tqdm
 
 from collections import OrderedDict
 from multiprocessing import Pool
+from tqdm.contrib.concurrent import process_map 
+
+segm_groups = {
+    'face':['eyeglass','face'],
+    'hair': ['hair'],
+    'headwear': ['headwear'],
+    'background':['background'],
+    'top':[ 'top','rompers','dress'],
+    'bottom':['skirt','dress','leggings','pants', 'belt'],
+    'shoes':['footwear','socks'],
+    'outer': ['outer'],
+    'accesories':['bag']
+    }
 
 class DeepfashionMMSegment:
-    def __init__(self):
-        
+    def __init__(self, device='cuda:0'):
+        self.device = device
         self.label_dict={
             0: 'background',
             1: 'top',
@@ -49,20 +62,9 @@ class DeepfashionMMSegment:
             23: 'tie'}
         
         self.label2id = dict(zip(self.label_dict.values(), self.label_dict.keys()))
-        self.segm_groups = {
-            'face':[ 'hair', 'eyeglass','face'],
-            'headwear': ['headwear']
-            'background':['background'],
-            'top':[ 'top','rompers','dress'],
-            'bottom':['skirt','dress','leggings','pants', 'belt'],
-            'shoes':['footwear','socks'],
-            'outer': ['outer']
-            'accesories':['bag']
-            }
         
-
         self.segm_id_groups = OrderedDict()
-        for k, v in self.segm_groups.items():
+        for k, v in segm_groups.items():
             self.segm_id_groups[k] = [self.label2id[l] for l in v]
                 
         self.clip_transform = T.Compose([
@@ -116,7 +118,7 @@ class DeepfashionMMSegment:
 
     def crop(self, input_image, # torch tensor
              mask, 
-             margin=100,
+             margin=20,
              is_background=False,
              mask_background=False):
         image = torch.clone(input_image).detach()
@@ -138,10 +140,10 @@ class DeepfashionMMSegment:
 
     def forward(self, image, segm, mask_background=True):
 
-        image = T.ToTensor()(image)
+        image = T.ToTensor()(image).to(self.device)
         cropped_images =  OrderedDict()
         for name, segm_group in self.segm_id_groups.items():
-            mask = torch.from_numpy(self.get_mask(segm, segm_group))
+            mask = torch.from_numpy(self.get_mask(segm, segm_group)).to(self.device)
             cropped = self.crop(image, mask, 
                                 is_background=name=='background',
                                 mask_background=mask_background)
@@ -149,15 +151,15 @@ class DeepfashionMMSegment:
             
         return cropped_images
     
-segmentor = DeepfashionMMSegment()
+segmentor = DeepfashionMMSegment(device='cuda:0')
 
 image_root = '/home/soon/datasets/deepfashion_inshop/img_highres/'
 segm_root = '/home/soon/datasets/deepfashion_inshop/segm/'
 dst_root = '/home/soon/datasets/deepfashion_inshop/styles/'
 segm_files = glob(os.path.join(segm_root,'**/*_segm.png'),recursive=True)
 
-#for segm_file in tqdm(segm_files[:]):
-def extract(segm_file):
+for segm_file in tqdm(segm_files[:]):
+#def extract(segm_file):
     image_file = segm_file.replace('_segm.png','.jpg').replace(segm_root, image_root)
     image = np.array(Image.open(image_file))
     segm = np.array(Image.open(segm_file))
@@ -171,7 +173,8 @@ def extract(segm_file):
             crop_file = os.path.join(dst_dir, k+'.jpg')
             v.save(crop_file)
 
-with Pool(os.cpu_count()-1) as p:
-    p.map(extract, segm_files)
-
+#with Pool(os.cpu_count()-1) as p:
+#with Pool(8) as p:
+#    p.map(extract, segm_files)
+#process_map(extract, segm_files, max_workers=8)
 print(f'Processed {len(segm_files)} files.')
