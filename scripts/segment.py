@@ -88,7 +88,7 @@ class DeepfashionMMSegment:
         top = 0
         bottom = height
         
-        vertical = torch.mean(mask.to(torch.float32), dim=0)
+        vertical = torch.sum(mask.to(torch.float32), dim=0)
         for w in range(width):
             if vertical[w] > 0.1:
                 left = w
@@ -101,7 +101,7 @@ class DeepfashionMMSegment:
         left = max(0, left-margin)
         right = min(width, right+margin)
 
-        horizontal = torch.mean(mask.to(torch.float32), dim=1)
+        horizontal = torch.sum(mask.to(torch.float32), dim=1)
 
         for h in range(height):
             if horizontal[h] > 0.1:
@@ -112,15 +112,18 @@ class DeepfashionMMSegment:
             if horizontal[h] > 0.1:
                 bottom = h
                 break
+
         top = max(0, top-margin)
         bottom = min(height, bottom+margin)
+
         return {'left':left, 'right':right, 'top':top, 'bottom':bottom}
 
     def crop(self, input_image, # torch tensor
              mask, 
-             margin=20,
+             margin=0,
              is_background=False,
-             mask_background=False):
+             mask_background=False,
+             name=None):
         image = torch.clone(input_image).detach()
         mask_range = self.get_mask_range(mask, margin)
         
@@ -133,20 +136,36 @@ class DeepfashionMMSegment:
             cropped = torch.stack(new_images)
         else:    
             cropped = image * mask if mask_background else image
+
             cropped = cropped[:,mask_range['top']:mask_range['bottom'], 
                                 mask_range['left']:mask_range['right']]
-        
+
+            if cropped.sum() > 0:
+                _, h, w = cropped.shape
+                pad = (h - w)//2
+
+                if pad > 0:
+                    padding  = (pad, pad, 0, 0)
+                    cropped = torch.nn.ZeroPad2d(padding)(cropped)
+                elif pad < 0:
+                    padding  = (0, 0, -pad, -pad)
+                    cropped = torch.nn.ZeroPad2d(padding)(cropped)                
+            else:
+                return None
         return self.clip_transform(cropped)
 
-    def forward(self, image, segm, mask_background=True):
+    def forward(self, image, segm):
 
         image = T.ToTensor()(image).to(self.device)
         cropped_images =  OrderedDict()
         for name, segm_group in self.segm_id_groups.items():
             mask = torch.from_numpy(self.get_mask(segm, segm_group)).to(self.device)
+            
             cropped = self.crop(image, mask, 
+                                margin=0,#margins[name],
                                 is_background=name=='background',
-                                mask_background=mask_background)
+                                name=name,
+                                mask_background=name!='face')
             cropped_images[name] = cropped
             
         return cropped_images
@@ -169,7 +188,7 @@ for segm_file in tqdm(segm_files[:]):
     dst_dir = os.path.join(path, fname.replace('_','/',1)).replace(segm_root, dst_root)
     os.makedirs(dst_dir, exist_ok=True)
     for k, v in cropped.items():
-        if np.sum(v)!= 0:
+        if v!= None:
             crop_file = os.path.join(dst_dir, k+'.jpg')
             v.save(crop_file)
 
