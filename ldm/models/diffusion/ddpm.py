@@ -687,7 +687,9 @@ class LatentDiffusion(DDPM):
         concat_c = None
         if self.model.conditioning_key is not None:
             if self.concat_key:
-                concat_c = [batch[self.concat_key]]
+                concat_c = batch[self.concat_key]
+                if bs is not None:
+                    concat_c = concat_c[:bs]
             if cond_key is None:
                 cond_key = self.cond_stage_key
             if cond_key != self.first_stage_key:
@@ -733,7 +735,7 @@ class LatentDiffusion(DDPM):
 
         #hybrid
         conditions = {'c_crossattn': c,
-                      'c_concat': concat_c}
+                      'c_concat': [concat_c]}
         out = [z, conditions]
         if return_first_stage_outputs:
             xrec = self.decode_first_stage(z)
