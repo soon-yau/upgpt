@@ -9,10 +9,11 @@ model:
     timesteps: 1000
     first_stage_key: "image"
     cond_stage_key: "txt"
+    concat_key: "person_mask"
     image_size: [32, 24]
     channels: 4
     cond_stage_trainable: false   # Note: different from the one we trained before
-    conditioning_key: crossattn
+    conditioning_key: hybrid #crossattn
     scale_factor: 0.18215
 
     
@@ -29,7 +30,7 @@ model:
       target: ldm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         image_size: 32 # unused
-        in_channels: 4
+        in_channels: 5
         out_channels: 4
         model_channels: 224 #320
         attention_resolutions: [ 4, 2, 1 ]

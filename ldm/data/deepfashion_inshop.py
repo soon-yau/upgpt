@@ -58,7 +58,7 @@ class DeepFashion(Loader):
         super().__init__(folder, **kwargs)
         self.root = Path(folder)
         self.image_root = self.root/image_dir
-        self.pose_root = self.root/'smpl'
+        self.pose_root = self.root/'smpl_256'
         self.style_root = self.root/'styles'
         self.texts = json.load(open(self.root/'captions.json'))
 
@@ -89,6 +89,11 @@ class DeepFashion(Loader):
             self.clip_norm
         ])
 
+        self.mask_transform = T.Compose([
+            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+            T.ToTensor(),
+            T.Lambda(lambda x: x * 2. - 1.)
+        ])
     def __len__(self):
         return len(self.df)
 
@@ -125,11 +130,15 @@ class DeepFashion(Loader):
             # SMPL
             if self.pose == 'smpl':
                 pose_path = str(self.pose_root/row['pose'])
+
                 smpl_image_file = pose_path + '.jpg'
                 smpl_file = pose_path + '.p'
                 smpl_image = Image.open(smpl_image_file)
                 smpl_image = self.image_transform(smpl_image)
-
+                
+                mask_file = pose_path + '_mask.png'
+                mask_image = Image.open(mask_file)
+                person_mask = self.mask_transform(mask_image)
                 with open(smpl_file, 'rb') as f:
                     smpl_params = pickle.load(f)
                     pred_pose = smpl_params[0]['pred_body_pose']
@@ -141,7 +150,8 @@ class DeepFashion(Loader):
                     smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
                     smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
-                data.update({'smpl':smpl_pose, 'smpl_image':smpl_image})
+                data.update({'smpl':smpl_pose, 'smpl_image':smpl_image, 
+                            'person_mask':person_mask})
 
 
 
@@ -167,7 +177,7 @@ class DeepFashionTest(Loader):
         super().__init__(folder, **kwargs)
         self.root = Path(folder)
         self.image_root = self.root/image_dir
-        self.pose_root = self.root/'smpl'
+        self.pose_root = self.root/'smpl_256'
         self.style_root = self.root/'styles'
         self.texts = json.load(open(self.root/'captions.json'))
 
@@ -199,6 +209,12 @@ class DeepFashionTest(Loader):
         self.clip_transform = T.Compose([
             T.ToTensor(),
             self.clip_norm
+        ])
+
+        self.mask_transform = T.Compose([
+            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+            T.ToTensor(),
+            T.Lambda(lambda x: x * 2. - 1.)
         ])
 
     def __len__(self):
@@ -251,6 +267,10 @@ class DeepFashionTest(Loader):
                 smpl_image = Image.open(smpl_image_file)
                 smpl_image = self.image_transform(smpl_image)
 
+                mask_file = pose_path + '_mask.png'
+                mask_image = Image.open(mask_file)
+                person_mask = self.mask_transform(mask_image)
+                
                 with open(smpl_file, 'rb') as f:
                     smpl_params = pickle.load(f)
                     pred_pose = smpl_params[0]['pred_body_pose']
@@ -261,7 +281,9 @@ class DeepFashionTest(Loader):
                     smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
 
-                data.update({'smpl':smpl_pose, 'smpl_image':smpl_image})
+                data.update({'smpl':smpl_pose, 'smpl_image':smpl_image, 
+                            'person_mask':person_mask})
+
 
             return data
 
