@@ -19,7 +19,7 @@ model:
     scheduler_config: # 10000 warmup steps
       target: ldm.lr_scheduler.LambdaLinearScheduler
       params:
-        warm_up_steps: [ 1] # NOTE for resuming. use 10000 if starting from scratch
+        warm_up_steps: [ 2000] # NOTE for resuming. use 10000 if starting from scratch
         cycle_lengths: [ 10000000000000 ] # incredibly large number to prevent corner cases
         f_start: [ 1.e-6 ]
         f_max: [ 1. ]
@@ -80,12 +80,11 @@ model:
           input_dim: 85
           output_dim: 768
 
-
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 16
-    num_workers: 16
+    batch_size: 15
+    num_workers: 15
     #num_val_workers: 0 # Avoid a weird val dataloader issue
     train:
       target: ldm.data.deepfashion_inshop.DeepFashion
@@ -112,8 +111,8 @@ data:
         #pad: [38, 0]
         #image_sizes: [256, 192]
         is_train: False
-        test_size: 200
-        test_split_seed: 3883
+        test_size: 1000
+        test_split_seed: 1234
 
     test:
       target: ldm.data.deepfashion_inshop.DeepFashionTest
@@ -139,7 +138,7 @@ lightning:
     image_logger:
       target: main.ImageLogger
       params:
-        batch_frequency: 2000
+        batch_frequency: 1000
         max_images: 4
         increase_log_steps: False
         log_first_step: True
@@ -165,5 +164,5 @@ lightning:
     benchmark: True
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
-    #max_epochs: 50
+    #max_epochs: 60
     #max_steps: 40000

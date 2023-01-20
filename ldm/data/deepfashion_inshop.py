@@ -15,7 +15,9 @@ from einops import rearrange
 from glob import glob
 import random
 import json
-from scripts.segment import segm_groups
+#from scripts.segment import segm_groups
+
+style_names = ['face', 'hair', 'headwear', 'background', 'top', 'outer', 'bottom', 'shoes', 'accesories']
 
 class Loader(Dataset):
     def __init__(self, folder, shuffle=False):
@@ -62,7 +64,9 @@ class DeepFashion(Loader):
 
         self.df = pd.read_csv(data_file)
         # temporary drop those without poses
-        self.df = self.df.drop(self.df[(self.df.pose == '')].index)
+        self.df = self.df.drop(self.df[self.df.pose.isnull()].index)
+        self.df = self.df.reset_index(drop=True)
+        self.df = self.df.drop(self.df[self.df.styles.isnull()].index)
         self.df = self.df.reset_index(drop=True)
         if test_size != 0:
             train, test = train_test_split(self.df, test_size=test_size, random_state=test_split_seed)
@@ -77,7 +81,7 @@ class DeepFashion(Loader):
         self.pose = pose
         self.pad = None if pad is None else tuple(pad)
         
-        self.style_names = list(segm_groups.keys())#['face', 'background', 'top', 'bottom', 'shoes', 'accesories']
+        self.style_names = style_names #['face', 'background', 'top', 'bottom', 'shoes', 'accesories'] 
         self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
                                     std=(0.26862954, 0.26130258, 0.27577711))
         self.clip_transform = T.Compose([
@@ -91,18 +95,20 @@ class DeepFashion(Loader):
     def __getitem__(self, index):
         try:
             row = self.df.iloc[index]
-            
+            '''
+            for k in ['text', 'image', 'pose', 'styles']:
+                if type(row[k]) != str:
+                    print(index, k, row[k])
+            '''
             # text
-            text = self.texts[row.text]
-
+            text = self.texts[row['text']]
             # image
-            image = self.image_transform(Image.open(self.image_root/row.image))
+            image = self.image_transform(Image.open(self.image_root/row['image']))
 
             # style images
             style_images = []
             for style_name in self.style_names:
-                f_path = self.style_root/row.styles/f'{style_name}.jpg'
-                
+                f_path = self.style_root/row['styles']/f'{style_name}.jpg'
                 if f_path.exists():
                     style_image = self.clip_transform((Image.open(f_path)))
                 else:
@@ -115,10 +121,10 @@ class DeepFashion(Loader):
             # image
             if self.pad:
                 image = T.Pad(self.pad, padding_mode='edge')(image)
-  
+
             # SMPL
             if self.pose == 'smpl':
-                pose_path = str(self.pose_root/row.pose)
+                pose_path = str(self.pose_root/row['pose'])
                 smpl_image_file = pose_path + '.jpg'
                 smpl_file = pose_path + '.p'
                 smpl_image = Image.open(smpl_image_file)
@@ -129,18 +135,20 @@ class DeepFashion(Loader):
                     pred_pose = smpl_params[0]['pred_body_pose']
                     pred_betas = smpl_params[0]['pred_betas']
                     pred_camera = np.expand_dims(smpl_params[0]['pred_camera'], 0)
+                    #pred_camera = T.ToTensor()(pred_camera).view((1,-1))
+                    # camera has 3 parameters (z, x, y) where 0 is center
+                    # z: +ve is zoom in. For x and y, +ve is right and up respectively
                     smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
                     smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
                 data.update({'smpl':smpl_pose, 'smpl_image':smpl_image})
 
-            return data
+
 
         except Exception as e:
-            #print(e)
-            #print(f"Skipping index {index}")
+            print(f"Skipping index {index}", e)
             return self.skip_sample(index)            
-        
+
         
         return data
 
@@ -165,11 +173,12 @@ class DeepFashionTest(Loader):
 
         self.df = pd.read_csv(data_file)
         # temporary drop those without poses
-        self.df = self.df.drop(self.df[(self.df.pose == '')].index)
+        self.df = self.df.drop(self.df[self.df.pose.isnull()].index)
+        self.df = self.df.drop(self.df[self.df.styles.isnull()].index)
+        self.df = self.df.drop(self.df[self.df['image']==''].index)
         self.df = self.df.reset_index(drop=True)
+
         self.df = self.df.set_index('image')
-
-
         # test config fiile
         self.test_df = pd.read_csv(test_file)
         if max_size:
@@ -184,14 +193,14 @@ class DeepFashionTest(Loader):
         self.pose = pose
         self.pad = None if pad is None else tuple(pad)
         
-        self.style_names = ['face', 'headwear','background', 'top', 'bottom', 'shoes', 'outer','accesories']
+        self.style_names = style_names#['face', 'background', 'top', 'bottom', 'shoes', 'accesories'] #list(segm_groups.keys())
         self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
                                     std=(0.26862954, 0.26130258, 0.27577711))
         self.clip_transform = T.Compose([
             T.ToTensor(),
             self.clip_norm
         ])
-        
+
     def __len__(self):
         return len(self.test_df)
 
@@ -203,7 +212,7 @@ class DeepFashionTest(Loader):
             source = self.df.loc[row['from']]
             src_path = str(self.image_root/source.name)
             source_image = self.image_transform(Image.open(src_path))
-            styles_path = source.styles
+            styles_path = source['styles']
 
             # target
             target = self.df.loc[row['to']]
@@ -247,8 +256,10 @@ class DeepFashionTest(Loader):
                     pred_pose = smpl_params[0]['pred_body_pose']
                     pred_betas = smpl_params[0]['pred_betas']
                     pred_camera = np.expand_dims(smpl_params[0]['pred_camera'], 0)
+                    #pred_camera = T.ToTensor()(pred_camera).view((1,-1))
                     smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
                     smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
+
 
                 data.update({'smpl':smpl_pose, 'smpl_image':smpl_image})
 
