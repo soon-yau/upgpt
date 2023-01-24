@@ -1306,6 +1306,7 @@ class LatentDiffusion(DDPM):
         os.makedirs(str(concat_root), exist_ok=True)
         os.makedirs(str(style_root), exist_ok=True)
         os.makedirs(str(gt_root), exist_ok=True)
+
         log = self.log_images(batch, N=100)
         
         images = log['samples'].detach()
@@ -1315,9 +1316,9 @@ class LatentDiffusion(DDPM):
         for k in ['smpl_image', 'src_image', 'image']:
             batch[k] = rearrange(batch[k],'b h w c -> b c h w' ) * 0.5 + 0.5
             
-        for test_index, sample, smpl_image, src_image, target_image in \
-                zip(batch['test_id'], images, batch['smpl_image'], batch['src_image'], log["reconstruction"]):
-            concat = torch.cat([src_image, sample, target_image, smpl_image], 2)
+        for test_index, sample, smpl_image, src_image, target_image, recon_image in \
+                zip(batch['test_id'], images, batch['smpl_image'], batch['src_image'], batch['image'], log["reconstruction"]):
+            concat = torch.cat([src_image, sample, recon_image, smpl_image], 2)
             T.ToPILImage()(concat).save(concat_root/f'{test_index}.jpg')
             T.ToPILImage()(sample).save(log_root/f'{test_index}.jpg')
             T.ToPILImage()(target_image).save(gt_root/f'{test_index}.jpg')
@@ -1330,7 +1331,7 @@ class LatentDiffusion(DDPM):
 
             style_images = torch.cat(style_images, 2)
             T.ToPILImage()(style_images).save(style_root/f'{test_index}.jpg')
-        
+
 
     @torch.no_grad()
     def log_images(self, batch, N=8, n_row=4, sample=True, ddim_steps=200, ddim_eta=1., return_keys=None,
