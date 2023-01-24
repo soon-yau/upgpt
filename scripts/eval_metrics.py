@@ -73,12 +73,11 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
     fnames = []
     ssim_scores = []
     #lpips_alex = []
-    lpips_vgg = []
+    lpips_scores = []
 
     device = f'cuda:{gpu}'
     #loss_fn_alex = lpips.LPIPS(net='alex').to(device)
     loss_fn_vgg = lpips.LPIPS(net='vgg').to(device)
-    #ret = subprocess.Popen(['python','-m', 'pytorch_fid', gt_dir, sample_dir])
     ret = os.popen(f"python -m pytorch_fid {gt_dir} {sample_dir}")  
     fid_str = ret.read()
 
@@ -89,22 +88,22 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
         sample = sample.to(device)
         gt = gt.to(device)
         ssim_scores.extend(ssim(sample, gt, data_range=1, size_average=False).cpu().numpy().tolist())
-        lpips_vgg.extend(loss_fn_vgg(sample, gt).view(-1).detach().cpu().numpy().tolist())
+        lpips_scores.extend(loss_fn_vgg(sample, gt).view(-1).detach().cpu().numpy().tolist())
 
 
     df = pd.DataFrame({'name':fnames, 
-                        'ssim':ssim_scores,
+                        'SSIM':ssim_scores,
                         #'lpips_alex': lpips_alex,
-                        'lpips_vgg': lpips_vgg})
+                        'LPIPS': lpips_scores})
     log_dir = Path(sample_dir)/'../'
     df.to_csv(log_dir/'metrics.csv', index=False)
 
 
     text_file = open(str(log_dir/'metrics.txt'), "w")
-    print('\n'+fid_str)    
+    print('\n'+fid_str.split('\n')[0])
     text_file.write(fid_str)
 
-    for metric in ['ssim', 'lpips_vgg']:
+    for metric in ['SSIM', 'LPIPS']:
         line = f"{metric}: {df[metric].mean()}"
         print(line)
         text_file.write(line+'\n')
