@@ -1300,23 +1300,27 @@ class LatentDiffusion(DDPM):
         log_root = Path(self.logger.save_dir)/'results/samples'
         concat_root = Path(self.logger.save_dir)/'results/concats'
         style_root = Path(self.logger.save_dir)/'results/styles'
+        gt_root = Path(self.logger.save_dir)/'results/gt'
 
         os.makedirs(str(log_root), exist_ok=True)
-        os.makedirs(str(concat_root), exist_ok=True) 
-        os.makedirs(str(style_root), exist_ok=True)        
+        os.makedirs(str(concat_root), exist_ok=True)
+        os.makedirs(str(style_root), exist_ok=True)
+        os.makedirs(str(gt_root), exist_ok=True)
         log = self.log_images(batch, N=100)
         
         images = log['samples'].detach()
         images = torch.clamp(images, -1., 1.) * 0.5 + 0.5
+        log["reconstruction"] = torch.clamp(log["reconstruction"], -1., 1.) * 0.5 + 0.5
 
         for k in ['smpl_image', 'src_image', 'image']:
             batch[k] = rearrange(batch[k],'b h w c -> b c h w' ) * 0.5 + 0.5
             
         for test_index, sample, smpl_image, src_image, target_image in \
-                zip(batch['test_id'], images, batch['smpl_image'], batch['src_image'], batch['image']):
+                zip(batch['test_id'], images, batch['smpl_image'], batch['src_image'], log["reconstruction"]):
             concat = torch.cat([src_image, sample, target_image, smpl_image], 2)
             T.ToPILImage()(concat).save(concat_root/f'{test_index}.jpg')
             T.ToPILImage()(sample).save(log_root/f'{test_index}.jpg')
+            T.ToPILImage()(target_image).save(gt_root/f'{test_index}.jpg')
         
         
         for test_index, style_batch in zip(batch['test_id'], batch['styles']):
