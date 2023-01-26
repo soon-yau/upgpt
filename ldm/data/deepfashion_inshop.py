@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image
 import pandas as pd
 from random import choice
-from ldm.data.pose_utils import PoseVisualizer
+from ldm.data.segm_utils import LIPSegmenter
 from abc import abstractmethod
 import pickle
 from sklearn.model_selection import train_test_split
@@ -15,6 +15,7 @@ from einops import rearrange
 from glob import glob
 import random
 import json
+
 #from scripts.segment import segm_groups
 
 style_names = ['face', 'hair', 'headwear', 'background', 'top', 'outer', 'bottom', 'shoes', 'accesories']
@@ -60,7 +61,9 @@ class DeepFashion(Loader):
         self.image_root = self.root/image_dir
         self.pose_root = self.root/'smpl_256'
         self.style_root = self.root/'styles'
+        self.segm_root = self.root/'lip_segm_256'
         self.texts = json.load(open(self.root/'captions.json'))
+        self.segmenter = LIPSegmenter()
 
         self.df = pd.read_csv(data_file)
         # temporary drop those without poses
@@ -94,6 +97,12 @@ class DeepFashion(Loader):
             T.ToTensor(),
             T.Lambda(lambda x: x * 2. - 1.)
         ])
+
+        self.loss_w_transform = T.Compose([
+            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+            T.ToTensor(),
+        ])        
+
     def __len__(self):
         return len(self.df)
 
@@ -107,8 +116,17 @@ class DeepFashion(Loader):
             '''
             # text
             text = self.texts[row['text']]
+            
+            # segmentation map
+            segm_file = str(self.segm_root/row['image']).replace('.jpg','.png')
+            segm = np.array(Image.open(segm_file))
+            loss_weight = self.segmenter.get_mask(segm, 
+                                    {'Background':0.5, 'Left-arm':2.0, 'Right-arm':2.0, 'Face':5.0})
+            loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
+
             # image
-            image = self.image_transform(Image.open(self.image_root/row['image']))
+            image = Image.open(self.image_root/row['image'])            
+            image = self.image_transform(image)
 
             # style images
             style_images = []
@@ -122,6 +140,7 @@ class DeepFashion(Loader):
             style_images = torch.stack(style_images)  
 
             data = {"image": image, "txt": text, "styles":style_images}
+
 
             # image
             if self.pad:
@@ -151,12 +170,12 @@ class DeepFashion(Loader):
                     smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
                 data.update({'smpl':smpl_pose, 'smpl_image':smpl_image, 
-                            'person_mask':person_mask})
+                            'person_mask':person_mask, 'loss_w':loss_weight})
 
 
 
         except Exception as e:
-            print(f"Skipping index {index}", e)
+            #print(f"Skipping index {index}")
             return self.skip_sample(index)            
 
         

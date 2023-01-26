@@ -22,6 +22,7 @@ from torchvision.utils import make_grid
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from torch.nn import ModuleList
 from collections.abc import Iterable
+from omegaconf import OmegaConf
 
 from ldm.util import log_txt_as_img, exists, default, ismap, isimage, mean_flat, count_params, instantiate_from_config
 from ldm.modules.ema import LitEma
@@ -676,8 +677,9 @@ class LatentDiffusion(DDPM):
 
     #@torch.no_grad()
     def get_input(self, batch, k, return_first_stage_outputs=False, force_c_encode=False,
-                  cond_key=None, return_original_cond=False, bs=None):
+                  cond_key=None, return_original_cond=False, bs=None, return_loss_w=False):
         x = super().get_input(batch, k)
+
         if bs is not None:
             x = x[:bs]
         x = x.to(self.device)
@@ -742,6 +744,9 @@ class LatentDiffusion(DDPM):
             out.extend([x, xrec])
         if return_original_cond:
             out.append(xc)
+        if return_loss_w:
+            mask_loss_w = batch.get('loss_w', None)
+            out.append(mask_loss_w)
 
         return out
 
@@ -906,8 +911,8 @@ class LatentDiffusion(DDPM):
             return self.first_stage_model.encode(x)
 
     def shared_step(self, batch, **kwargs):
-        x, c = self.get_input(batch, self.first_stage_key)
-        loss = self(x, c)
+        x, c, w = self.get_input(batch, self.first_stage_key, return_loss_w=True)
+        loss = self(x, c, loss_w=w)
         return loss
 
     def forward(self, x, c, *args, **kwargs):
@@ -1052,7 +1057,7 @@ class LatentDiffusion(DDPM):
         kl_prior = normal_kl(mean1=qt_mean, logvar1=qt_log_variance, mean2=0.0, logvar2=0.0)
         return mean_flat(kl_prior) / np.log(2.0)
 
-    def p_losses(self, x_start, cond, t, noise=None):
+    def p_losses(self, x_start, cond, t, noise=None, loss_w=None):
         noise = default(noise, lambda: torch.randn_like(x_start))
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
         model_output = self.apply_model(x_noisy, t, cond)
@@ -1070,7 +1075,11 @@ class LatentDiffusion(DDPM):
         else:
             raise NotImplementedError()
 
-        loss_simple = self.get_loss(model_output, target, mean=False).mean([1, 2, 3])
+        loss_simple = self.get_loss(model_output, target, mean=False)
+        if loss_w != None:
+            loss_simple = torch.mul(loss_w, loss_simple)
+
+        loss_simple = loss_simple.mean([1, 2, 3])
         loss_dict.update({f'{prefix}/loss_simple': loss_simple.mean()})
 
         logvar_t = self.logvar[t].to(self.device)
@@ -1308,14 +1317,16 @@ class LatentDiffusion(DDPM):
         os.makedirs(str(gt_root), exist_ok=True)
 
         log = self.log_images(batch, N=100)
-        
-        images = log['samples'].detach()
+
+        crop = T.CenterCrop((256,176))
+
+        images = crop(log['samples'].detach())
         images = torch.clamp(images, -1., 1.) * 0.5 + 0.5
-        log["reconstruction"] = torch.clamp(log["reconstruction"], -1., 1.) * 0.5 + 0.5
+        log["reconstruction"] = crop(torch.clamp(log["reconstruction"], -1., 1.) * 0.5 + 0.5)
 
         for k in ['smpl_image', 'src_image', 'image']:
-            batch[k] = rearrange(batch[k],'b h w c -> b c h w' ) * 0.5 + 0.5
-            
+            batch[k] = crop(rearrange(batch[k],'b h w c -> b c h w' ) * 0.5 + 0.5)
+                
         for test_index, sample, smpl_image, src_image, target_image, recon_image in \
                 zip(batch['test_id'], images, batch['smpl_image'], batch['src_image'], batch['image'], log["reconstruction"]):
             concat = torch.cat([src_image, sample, recon_image, smpl_image], 2)
@@ -1470,15 +1481,27 @@ class LatentDiffusion(DDPM):
         opt = torch.optim.AdamW(params, lr=lr)
         if self.use_scheduler:
             assert 'target' in self.scheduler_config
-            scheduler = instantiate_from_config(self.scheduler_config)
-
-            print("Setting up LambdaLR scheduler...")
-            scheduler = [
-                {
-                    'scheduler': LambdaLR(opt, lr_lambda=scheduler.schedule),
-                    'interval': 'step',
-                    'frequency': 1
-                }]
+            import pdb
+            pdb.set_trace()
+            if self.scheduler_config['target'] == 'torch.optim.lr_scheduler.ReduceLROnPlateau':
+                self.scheduler_config = OmegaConf.to_container(self.scheduler_config)
+                self.scheduler_config['params']['optimizer'] = opt
+                scheduler = instantiate_from_config(self.scheduler_config)
+                scheduler = {
+                        "scheduler": scheduler,
+                        "monitor": self.scheduler_config['monitor'],
+                        "frequency": 1 }
+                return [opt], scheduler
+            else: # default
+                print("Setting up LambdaLR scheduler...")
+                scheduler = instantiate_from_config(self.scheduler_config)
+                scheduler = [
+                    {
+                        'scheduler': LambdaLR(opt, lr_lambda=scheduler.schedule),
+                        'interval': 'step',
+                        'frequency': 1
+                    }]
+                        
             return [opt], scheduler
         return opt
 

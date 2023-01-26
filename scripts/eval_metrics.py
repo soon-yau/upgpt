@@ -21,15 +21,17 @@ import subprocess
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--sample_dir",
+        "--dir",
         type=str,
         required=True,
     )  
+    '''
     parser.add_argument(
         "--gt_dir",
         type=str,
         default="/home/soon/datasets/deepfashion_inshop/pose_transfer_gt",
     )
+    '''
     parser.add_argument(
         "--gpu",
         type=int,
@@ -50,7 +52,7 @@ class Loader(Dataset):
         gt_files = glob(os.path.join(self.gt_folder, '*.jpg'))
         sample_files = glob(os.path.join(self.sample_folder, '*.jpg'))
 
-        if len(gt_files)==len(sample_files):
+        if len(gt_files)!=len(sample_files):
             print(f'Missing result files {len(gt_files)-len(sample_files)}')
         self.data = sample_files
         self.image_transform = T.ToTensor()
@@ -110,9 +112,26 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
 
     text_file.close()
         
+def resize_image(root):
+    image_files = glob(str(Path(root)/'**/*.jpg'), recursive=True)
+
+    for image_file in image_files:
+        image = Image.open(image_file)
+        if image.size == (192,256):
+            image = np.array(Image.open(image_file))[:,8:-8,:]
+            Image.fromarray(image).save(image_file)
+        else:
+            break
 
 if __name__ == '__main__':
 
     parser = get_parser()
     args = parser.parse_args()
-    eval(args.gt_dir, args.sample_dir, args.batch_size, args.gpu)
+    root = Path(args.dir)
+    gt_root = str(root/'gt')
+    sample_root = str(root/'samples')
+    
+    resize_image(gt_root)
+    resize_image(sample_root)
+
+    eval(gt_root, sample_root, args.batch_size, args.gpu)
