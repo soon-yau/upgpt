@@ -1,3 +1,6 @@
+# pictures
+*.jpg
+
 # application specific
 lightning_logs/
 logs/

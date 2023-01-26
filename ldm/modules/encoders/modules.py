@@ -179,18 +179,21 @@ class FrozenCLIPTextEmbedder(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
-    def forward(self, text):
-        tokens = clip.tokenize(text).to(self.device)
-        z = self.model.encode_text(tokens)
-        if self.normalize:
-            z = z / torch.linalg.norm(z, dim=1, keepdim=True)
-        return z
+    def forward(self, texts):
+        zs = []
+        for text in texts:
+            tokens = clip.tokenize(text).to(self.device)
+            z = self.model.encode_text(tokens)
+            if self.normalize:
+                z = z / torch.linalg.norm(z, dim=1, keepdim=True)
+            zs.append(z)
+        return torch.stack(zs)
 
     def encode(self, text):
         z = self(text)
         if z.ndim==2:
             z = z[:, None, :]
-        z = repeat(z, 'b 1 d -> b k d', k=self.n_repeat)
+            z = repeat(z, 'b 1 d -> b k d', k=self.n_repeat)
         return z
 
 
@@ -226,6 +229,29 @@ class FrozenClipImageEmbedder(nn.Module):
     def forward(self, x):
         # x is assumed to be in range [-1,1]
         return self.model.encode_image(self.preprocess(x))
+
+class FrozenClipImageEmbedder2(nn.Module):
+    """
+        Uses the CLIP image encoder.
+        """
+    def __init__(
+            self,
+            model='ViT-L/14',
+            jit=False,
+            device='cuda' if torch.cuda.is_available() else 'cpu',
+        ):
+        super().__init__()
+        self.model, _ = clip.load(name=model, device=device, jit=jit)
+
+        self.model = self.model.eval()
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def forward(self, x):
+        b, n, c, h, w = x.shape
+        batch = rearrange(x, 'b n c h w -> (b n) c h w ')
+        ret = self.model.encode_image(batch)
+        return rearrange(ret, '(b n) w -> b n w ', b=b, n=n)
 
 
 if __name__ == "__main__":
