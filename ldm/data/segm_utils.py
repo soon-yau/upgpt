@@ -166,7 +166,7 @@ class LipSegmenter(Segmenter):
             'bottom':['skirt','dress','pants','jumpsuits'],
             'shoes':['left-shoe','right-shoe','socks'],
             'outer': ['coat'],
-            'arms':['left-arm', 'right-arm']
+            #'arms':['left-arm', 'right-arm']
             })
 
         image_transform = T.Compose([
