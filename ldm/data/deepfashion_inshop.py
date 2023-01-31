@@ -200,7 +200,7 @@ class DeepFashionPair(Loader):
 
         except Exception as e:
             
-            print(f"Skipping index {index}", e)
+            #print(f"Skipping index {index}", e)
             return self.skip_sample(index)
 
 
