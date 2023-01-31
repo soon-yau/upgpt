@@ -1318,7 +1318,7 @@ class LatentDiffusion(DDPM):
 
         log = self.log_images(batch, N=100)
 
-        crop = T.CenterCrop((256,176))
+        crop = T.CenterCrop((256, 176))
 
         images = crop(log['samples'].detach())
         images = torch.clamp(images, -1., 1.) * 0.5 + 0.5
@@ -1481,8 +1481,7 @@ class LatentDiffusion(DDPM):
         opt = torch.optim.AdamW(params, lr=lr)
         if self.use_scheduler:
             assert 'target' in self.scheduler_config
-            import pdb
-            pdb.set_trace()
+
             if self.scheduler_config['target'] == 'torch.optim.lr_scheduler.ReduceLROnPlateau':
                 self.scheduler_config = OmegaConf.to_container(self.scheduler_config)
                 self.scheduler_config['params']['optimizer'] = opt

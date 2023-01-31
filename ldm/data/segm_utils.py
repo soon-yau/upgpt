@@ -39,7 +39,7 @@ class Segmenter:
         for k, v in self.segm_groups.items():
             self.segm_id_groups[k] = [self.label2id[l] for l in v]
                 
-    def get_mask(self, segm, mask_val, default_value=0.0):
+    def get_mask(self, segm, mask_val, default_value=1.0):
         mask = np.full(segm.shape, default_value, dtype=np.float32)
         for label, value in mask_val.items():
             mask[segm==self.label2id[label]] = value

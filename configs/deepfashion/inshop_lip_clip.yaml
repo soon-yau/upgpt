@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 4.5e-05
+  base_learning_rate: 2.5e-05
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
@@ -26,11 +26,11 @@ model:
       #   patience: 3
       #   cooldown: 0
       #   min_lr: 0.00001
-      #   threshold: 0.01
+      #   threshold: 0.001
       #   verbose: True    
       target: ldm.lr_scheduler.LambdaLinearScheduler
       params:
-        warm_up_steps: [ 10000] # NOTE for resuming. use 10000 if starting from scratch
+        warm_up_steps: [ 1] # NOTE for resuming. use 10000 if starting from scratch
         cycle_lengths: [ 10000000000000 ] # incredibly large number to prevent corner cases
         f_start: [ 1.e-6 ]
         f_max: [ 1. ]
@@ -102,7 +102,11 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         image_dir: img_256
-        pair_file: pairs-train-all.csv
+        data_file: train.csv
+        pair_file: 
+         - pairs-train-all.csv
+         - solo-train-all.csv
+        
 
 
     validation:
@@ -110,15 +114,20 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         image_dir: img_256
-        pair_file: pairs-test-all.csv
-        #max_size: 5000
+        data_file: test.csv
+        pair_file: 
+          - pairs-test-all.csv
+        
 
     test:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         image_dir: img_256
-        pair_file: pairs-test-all.csv
+        data_file: test.csv
+        pair_file: 
+          - pairs-test-all.csv
+        
 
 lightning:
   find_unused_parameters: False
@@ -126,7 +135,7 @@ lightning:
   modelcheckpoint:
     params:
       save_last: True
-      every_n_epochs: 1
+      every_n_epochs: 2
       save_top_k: 1
       monitor: val/loss_simple_ema
 
@@ -134,7 +143,7 @@ lightning:
     image_logger:
       target: main.ImageLogger
       params:
-        batch_frequency: 1000
+        batch_frequency: 10
         max_images: 4
         increase_log_steps: False
         log_first_step: True
@@ -150,17 +159,17 @@ lightning:
           unconditional_guidance_scale: 3.0
           unconditional_guidance_label: [""]
   
-    early_stopping:
-      target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
-      params:
-        monitor: val/loss_simple_ema
-        mode: min
-        patience: 4
+    # early_stopping:
+    #   target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
+    #   params:
+    #     monitor: val/loss_simple_ema
+    #     mode: min
+    #     patience: 5
 
   trainer:
     benchmark: True
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
-    check_val_every_n_epoch: 1
-    #max_epochs: 60
+    check_val_every_n_epoch: 2
+    max_epochs: 25
     #max_steps: 40000

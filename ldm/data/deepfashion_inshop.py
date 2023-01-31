@@ -43,150 +43,13 @@ class Loader(Dataset):
         pass
 
 
-class DeepFashion(Loader):
-    
-    def __init__(self, 
-                folder,
-                image_dir,
-                data_file, 
-                image_sizes=None, 
-                pose=None,
-                is_train=True,
-                test_size=0, 
-                test_split_seed=None,
-                pad=None,
-                **kwargs):
-        super().__init__(folder, **kwargs)
-        self.root = Path(folder)
-        self.image_root = self.root/image_dir
-        self.pose_root = self.root/'smpl_256'
-        self.style_root = self.root/'styles'
-        self.segm_root = self.root/'lip_segm_256'
-        self.texts = json.load(open(self.root/'captions.json'))
-        self.segmenter = LipSegmenter()
-
-        self.df = pd.read_csv(data_file)
-        # temporary drop those without poses
-        self.df = self.df.drop(self.df[self.df.pose.isnull()].index)
-        self.df = self.df.reset_index(drop=True)
-        self.df = self.df.drop(self.df[self.df.styles.isnull()].index)
-        self.df = self.df.reset_index(drop=True)
-        if test_size != 0:
-            train, test = train_test_split(self.df, test_size=test_size, random_state=test_split_seed)
-            self.df = train if is_train else test
-
-        self.image_sizes = image_sizes
-        transform_list = [T.Resize(image_sizes)] if image_sizes else []
-        self.image_transform = T.Compose(transform_list + [
-            T.ToTensor(),
-            T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
-
-        self.pose = pose
-        self.pad = None if pad is None else tuple(pad)
-        
-        self.style_names = style_names #['face', 'background', 'top', 'bottom', 'shoes', 'accesories'] 
-        self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
-                                    std=(0.26862954, 0.26130258, 0.27577711))
-        self.clip_transform = T.Compose([
-            T.ToTensor(),
-            self.clip_norm
-        ])
-
-        self.mask_transform = T.Compose([
-            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
-            T.ToTensor(),
-            T.Lambda(lambda x: x * 2. - 1.)
-        ])
-
-        self.loss_w_transform = T.Compose([
-            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
-            T.ToTensor(),
-        ])        
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, index):
-        try:
-            row = self.df.iloc[index]
-            '''
-            for k in ['text', 'image', 'pose', 'styles']:
-                if type(row[k]) != str:
-                    print(index, k, row[k])
-            '''
-            # text
-            text = self.texts[row['text']]
-            
-            # segmentation map
-            segm_file = str(self.segm_root/row['image']).replace('.jpg','.png')
-            segm = np.array(Image.open(segm_file))
-            loss_weight = self.segmenter.get_mask(segm, 
-                                    {'Background':0.5, 'Left-arm':2.0, 'Right-arm':2.0, 'Face':5.0})
-            loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
-
-            # image
-            image = Image.open(self.image_root/row['image'])            
-            image = self.image_transform(image)
-
-            # style images
-            style_images = []
-            for style_name in self.style_names:
-                f_path = self.style_root/row['styles']/f'{style_name}.jpg'
-                if f_path.exists():
-                    style_image = self.clip_transform((Image.open(f_path)))
-                else:
-                    style_image = self.clip_norm(torch.zeros(3, 224, 224))
-                style_images.append(style_image)
-            style_images = torch.stack(style_images)  
-
-            data = {"image": image, "txt": text, "styles":style_images}
-
-
-            # image
-            if self.pad:
-                image = T.Pad(self.pad, padding_mode='edge')(image)
-
-            # SMPL
-            if self.pose == 'smpl':
-                pose_path = str(self.pose_root/row['pose'])
-
-                smpl_image_file = pose_path + '.jpg'
-                smpl_file = pose_path + '.p'
-                smpl_image = Image.open(smpl_image_file)
-                smpl_image = self.image_transform(smpl_image)
-                
-                mask_file = pose_path + '_mask.png'
-                mask_image = Image.open(mask_file)
-                person_mask = self.mask_transform(mask_image)
-                with open(smpl_file, 'rb') as f:
-                    smpl_params = pickle.load(f)
-                    pred_pose = smpl_params[0]['pred_body_pose']
-                    pred_betas = smpl_params[0]['pred_betas']
-                    pred_camera = np.expand_dims(smpl_params[0]['pred_camera'], 0)
-                    #pred_camera = T.ToTensor()(pred_camera).view((1,-1))
-                    # camera has 3 parameters (z, x, y) where 0 is center
-                    # z: +ve is zoom in. For x and y, +ve is right and up respectively
-                    smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
-                    smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
-
-                data.update({'smpl':smpl_pose, 'smpl_image':smpl_image, 
-                            'person_mask':person_mask, 'loss_w':loss_weight})
-
-
-
-        except Exception as e:
-            #print(f"Skipping index {index}")
-            return self.skip_sample(index)            
-
-        
-        return data
-
 class DeepFashionPair(Loader):
     
     def __init__(self, 
                 folder,
                 image_dir,
-                pair_file,                 
+                pair_file, # from, to 
+                data_file, # point to style features and text
                 image_sizes=None, 
                 pad=None,
                 max_size=0, 
@@ -195,12 +58,16 @@ class DeepFashionPair(Loader):
         super().__init__(folder, **kwargs)
         self.root = Path(folder)
         self.image_root = self.root/image_dir
-        self.pose_root = self.root/'smpl'
+        self.pose_root = self.root/'smpl_256'
         self.style_root = self.root/'styles'
         self.segm_root = self.root/'lip_segm_256'
         self.texts = json.load(open(self.root/'captions.json'))
+        self.map_df = pd.read_csv(data_file)
+        self.map_df.set_index('image', inplace=True)
 
-        self.df = pd.read_csv(pair_file)
+        dfs = [pd.read_csv(f) for f in pair_file]
+        self.df = pd.concat(dfs, ignore_index=True)
+        
         if max_size != 0:
             _, self.df = train_test_split(self.df, test_size=max_size, random_state=test_split_seed)
         
@@ -215,11 +82,13 @@ class DeepFashionPair(Loader):
         self.pad = None if pad is None else tuple(pad)
         ''' '''
 
+        self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
+                                    std=(0.26862954, 0.26130258, 0.27577711))
         self.clip_transform = T.Compose([
             T.ToTensor(),
-            T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
-                                    std=(0.26862954, 0.26130258, 0.27577711))
+            self.clip_norm
         ])
+
 
         self.loss_w_transform = T.Compose([
             T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
@@ -227,51 +96,60 @@ class DeepFashionPair(Loader):
         ])    
         
         self.mask_transform = T.Compose([
-            T.ToPILImage(),
             T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
             T.ToTensor(),
             T.Lambda(lambda x: x * 2. - 1.)
-        ])
-
+            #T.Lambda(lambda x: (torch.mean(x,0, keepdim=True) < 0.94) * 2. - 1.)
+        ])        
             
         self.smpl_image_transform = T.Compose([
-            T.Resize(size=256),
-            T.CenterCrop(size=(256, 176))])
+            #T.Resize(size=256),
+            T.CenterCrop(size=(256, 192))])
         
         self.segmenter = LipSegmenter(self.clip_transform)
-        
+        self.style_names = style_names
     def __len__(self):
         return len(self.df)
 
+    
     def __getitem__(self, index):
         try:
+
             row = self.df.iloc[index]
 
             # source - get fashion styles
-            source = row['from']
-            src_path = str(self.image_root/source)
+            source = self.map_df.loc[row['from']]
+            src_path = str(self.image_root/source.name)
             source_image = Image.open(src_path)
+          
+            #styles_dict = self.segmenter.forward(source_image, segm)
+            #styles = torch.stack(list(styles_dict.values()))            
+            styles_path = source['styles']
+            if styles_path == np.nan:
+                return self.skip_sample(index)
 
-            segm_path = str(self.segm_root/source).replace('.jpg','.png')            
-            segm = np.array(Image.open(segm_path))
-            styles_dict = self.segmenter.forward(source_image, segm)
-            styles = torch.stack(list(styles_dict.values()))            
-
+            style_images = []
+            for style_name in self.style_names:
+                f_path = self.style_root/styles_path/f'{style_name}.jpg'
+                
+                if f_path.exists():
+                    style_image = self.clip_transform((Image.open(f_path)))
+                else:
+                    style_image = self.clip_norm(torch.zeros(3, 224, 224))
+                style_images.append(style_image)
+            style_images = torch.stack(style_images)  
+            
+            
             data = {"test_id":  index,
                     "src_image": self.image_transform(source_image),
-                    "styles":styles}
+                    "styles": style_images}
 
             # target - get text, person_mask, pose, 
-            target = row['to']
+            target = self.map_df.loc[row['to']]
 
-            target_id = target.replace('/','-')
+            text = self.texts.get(target.text, '')
 
-            text = self.texts.get(target_id, '')
-            if len(text) == 0:
-                source_id = source.replace('/','-')
-                text = self.texts.get(source_id, '')
-
-            target_path = str(self.image_root/target)            
+            target_path = str(self.image_root/target.name)
             target_image = self.image_transform(Image.open(target_path))
 
             data.update({"image": target_image, "txt": text})
@@ -281,13 +159,16 @@ class DeepFashionPair(Loader):
             #    image = T.Pad(self.pad, padding_mode='edge')(image)
 
             # SMPL            
-            smpl_image_file = str(self.pose_root/target)
+            pose_path = str(self.pose_root/target.pose)
+            smpl_image_file = pose_path + '.jpg'
+            smpl_file = pose_path + '.p'
             smpl_image = self.smpl_image_transform(Image.open(smpl_image_file))
-            smpl_image = self.image_transform(smpl_image)        
-
-
-            smpl_file = smpl_image_file.replace('.jpg','.p')
-
+            mask_file = pose_path + '_mask.png'
+            mask_image = Image.open(mask_file)
+            person_mask = self.mask_transform(mask_image)
+            #person_mask = self.mask_transform(smpl_image)
+            smpl_image = self.image_transform(smpl_image)
+            
             with open(smpl_file, 'rb') as f:
                 smpl_params = pickle.load(f)
                 pred_pose = smpl_params[0]['pred_body_pose']
@@ -297,17 +178,15 @@ class DeepFashionPair(Loader):
                 smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
 
-            segm_path = str(self.segm_root/target).replace('.jpg','.png')            
+            segm_path = str(self.segm_root/target.name).replace('.jpg','.png')            
             segm = np.array(Image.open(segm_path))
 
-            person_mask = self.segmenter.get_mask(segm, {'background':0.0}, default_value=1.0)
-            person_mask = self.mask_transform(person_mask)
-
+            #person_mask = self.segmenter.get_mask(segm, {'background':0.0}, default_value=1.0)
             loss_weight = self.segmenter.get_mask(segm, 
                                         {'background':0.5, 
                                         'left-arm':2.0, 
                                         'right-arm':2.0, 
-                                        'face':10.0})
+                                        'face':5.0})
             loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
 
 
@@ -321,8 +200,9 @@ class DeepFashionPair(Loader):
 
         except Exception as e:
             
-            #print(f"Skipping index {index}", e)
+            print(f"Skipping index {index}", e)
             return self.skip_sample(index)
+
 
 class DeepFashionImageOnly(Loader):
     
