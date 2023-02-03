@@ -1330,7 +1330,7 @@ class LatentDiffusion(DDPM):
         os.makedirs(str(style_root), exist_ok=True)
         os.makedirs(str(gt_root), exist_ok=True)
 
-        log = self.log_images(batch, N=100)
+        log = self.log_images(batch, N=100, ddim_steps=200)
 
         crop = T.CenterCrop((256, 176))
 
