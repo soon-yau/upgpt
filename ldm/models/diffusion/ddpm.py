@@ -456,7 +456,8 @@ class LatentDiffusion(DDPM):
         ignore_keys = kwargs.pop("ignore_keys", [])
 
         extra_cond_stages = kwargs.pop('extra_cond_stages', None)
-
+        self.cond_stage_key_2 = kwargs.pop('cond_stage_key_2', None)
+        
         super().__init__(conditioning_key=conditioning_key, *args, **kwargs)
 
         if extra_cond_stages:
@@ -580,7 +581,10 @@ class LatentDiffusion(DDPM):
                 if isinstance(c, DiagonalGaussianDistribution):
                     c = c.mode()
             else:
-                c = self.cond_stage_model(c)
+                if isinstance(c, dict):
+                    c = self.cond_stage_model(**c)
+                else:
+                    c = self.cond_stage_model(c)
         else:
             assert hasattr(self.cond_stage_model, self.cond_stage_forward)
             c = getattr(self.cond_stage_model, self.cond_stage_forward)(c)
@@ -694,23 +698,33 @@ class LatentDiffusion(DDPM):
                     concat_c = concat_c[:bs]
             if cond_key is None:
                 cond_key = self.cond_stage_key
+
             if cond_key != self.first_stage_key:
                 if cond_key in ['caption', 'coordinates_bbox', 'txt']:
+                    #here 
                     xc = batch[cond_key]
+                    if self.cond_stage_key_2:
+                        xc = {cond_key: xc,
+                              self.cond_stage_key_2: batch[self.cond_stage_key_2].to(self.device)
+                        }
+                    # get styles
                 elif cond_key == 'class_label':
                     xc = batch
                 else:
                     xc = super().get_input(batch, cond_key).to(self.device)
             else:
                 xc = x
+
             if not self.cond_stage_trainable or force_c_encode:
                 if isinstance(xc, dict) or isinstance(xc, list):
                     # import pudb; pudb.set_trace()
                     c = self.get_learned_conditioning(xc)
                 else:
+                    # pass in text and styles
                     c = self.get_learned_conditioning(xc.to(self.device))
             else:
-                c = xc
+                c = self.cond_stage_model(**xc)
+                #c = xc
 
             # additional conditions
             for extra_cond_key, extra_cond_model in zip(self.extra_cond_keys, self.extra_cond_models):
@@ -919,8 +933,8 @@ class LatentDiffusion(DDPM):
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
         if self.model.conditioning_key is not None:
             assert c is not None
-            if self.cond_stage_trainable:
-                c = self.get_learned_conditioning(c)
+            #if self.cond_stage_trainable:
+            #    c = self.get_learned_conditioning(c)
             if self.shorten_cond_schedule:  # TODO: drop this option
                 tc = self.cond_ids[t].to(self.device)
                 c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))

@@ -53,12 +53,15 @@ class DeepFashionPair(Loader):
                 image_sizes=None, 
                 pad=None,
                 max_size=0, 
-                test_split_seed=None,                 
+                test_split_seed=None,
+                input_mask_type='mask',
                 **kwargs):
         super().__init__(folder, **kwargs)
+        assert input_mask_type in ['mask', 'smpl']
+        self.input_mask_type = input_mask_type
         self.root = Path(folder)
         self.image_root = self.root/image_dir
-        self.pose_root = self.root/'smpl_256'
+        self.pose_root = self.root/'smpl_256' if self.input_mask_type=='mask' else self.root/'smpl'
         self.style_root = self.root/'styles'
         self.segm_root = self.root/'lip_segm_256'
         self.texts = json.load(open(self.root/'captions.json'))
@@ -95,13 +98,19 @@ class DeepFashionPair(Loader):
             T.ToTensor(),
         ])    
         
-        self.mask_transform = T.Compose([
-            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
-            T.ToTensor(),
-            T.Lambda(lambda x: x * 2. - 1.)
-            #T.Lambda(lambda x: (torch.mean(x,0, keepdim=True) < 0.94) * 2. - 1.)
-        ])        
-            
+        if self.input_mask_type=='mask':
+            self.mask_transform = T.Compose([
+                T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+                T.ToTensor(),
+                T.Lambda(lambda x: x * 2. - 1.)
+            ])                
+        else :
+            self.mask_transform = T.Compose([
+                T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+                T.ToTensor(),
+                T.Lambda(lambda x: (torch.mean(x,0, keepdim=True) < 0.94) * 2. - 1.)
+            ])             
+
         self.smpl_image_transform = T.Compose([
             #T.Resize(size=256),
             T.CenterCrop(size=(256, 192))])
@@ -163,10 +172,13 @@ class DeepFashionPair(Loader):
             smpl_image_file = pose_path + '.jpg'
             smpl_file = pose_path + '.p'
             smpl_image = self.smpl_image_transform(Image.open(smpl_image_file))
-            mask_file = pose_path + '_mask.png'
-            mask_image = Image.open(mask_file)
-            person_mask = self.mask_transform(mask_image)
-            #person_mask = self.mask_transform(smpl_image)
+            if self.input_mask_type=='mask':
+                mask_file = pose_path + '_mask.png'
+                mask_image = Image.open(mask_file)
+                person_mask = self.mask_transform(mask_image)
+            else:
+                person_mask = self.mask_transform(smpl_image)
+                
             smpl_image = self.image_transform(smpl_image)
             
             with open(smpl_file, 'rb') as f:
@@ -198,9 +210,9 @@ class DeepFashionPair(Loader):
 
             return data
 
-        except Exception as e:
-            
+        except Exception as e:            
             #print(f"Skipping index {index}", e)
+            #sys.exit()
             return self.skip_sample(index)
 
 
