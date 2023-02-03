@@ -3,12 +3,12 @@ import torch.nn as nn
 from functools import partial
 import clip
 from einops import rearrange, repeat
-from transformers import CLIPTokenizer, CLIPTextModel
+from transformers import CLIPTokenizer, CLIPTextModel, CLIPModel
 import kornia
 
 from ldm.modules.x_transformer import Encoder, TransformerWrapper  # TODO: can we directly rely on lucidrains code and simply add this as a reuirement? --> test
 
-
+from ldm.modules.attention import CrossAttention
 class AbstractEncoder(nn.Module):
     def __init__(self):
         super().__init__()
@@ -196,14 +196,13 @@ class FrozenCLIPTextEmbedder(nn.Module):
             z = repeat(z, 'b 1 d -> b k d', k=self.n_repeat)
         return z
 
-
 class FrozenClipImageEmbedder(nn.Module):
     """
         Uses the CLIP image encoder.
         """
     def __init__(
             self,
-            model,
+            model='ViT-L/14',
             jit=False,
             device='cuda' if torch.cuda.is_available() else 'cpu',
             antialias=False,
@@ -254,6 +253,68 @@ class FrozenClipImageEmbedder2(nn.Module):
         return rearrange(ret, '(b n) w -> b n w ', b=b, n=n)
 
 
+class CLIPTextImageCrossAtten(nn.Module):
+    
+    def __init__(self, version='laion/CLIP-ViT-L-14-laion2B-s32B-b82K',
+                max_length = 77,
+                device='cuda' if torch.cuda.is_available() else 'cpu'):
+
+        super().__init__()
+        self.model = CLIPModel.from_pretrained(version)
+        self.tokenizer = CLIPTokenizer.from_pretrained(version)
+        self.max_length = max_length
+        self.device = device
+        self.freeze()
+
+        self.cross_att = CrossAttention(
+            query_dim=768, 
+            context_dim=768, 
+            heads=8, 
+            dim_head=96).to(device)
+        
+    def forward_image(self, image):
+        b, n, c, h, w = image.shape
+        image = rearrange(image, 'b n c h w -> (b n) c h w ')
+        image_emb = self.model.get_image_features(pixel_values=image)
+        image_emb = rearrange(image_emb, '(b n) w -> b n w ', b=b, n=n)
+        return image_emb
+    
+    def _forward_text(self, text):
+        batch_encoding = self.tokenizer(text, truncation=True, max_length=self.max_length, return_length=True,
+                                        return_overflowing_tokens=False, padding="max_length", return_tensors="pt")
+        tokens = batch_encoding["input_ids"].to(self.device)
+        outputs = self.model.text_model(input_ids=tokens)
+        return outputs
+    
+    def get_text_emb(self, text):
+        outputs = self._forward_text(text)
+        return outputs.last_hidden_state
+
+    def get_text_outputs(self, texts):
+        clip_features = []
+        for text in texts:
+            outputs = self._forward_text(text)
+            clip_features.append(outputs.pooler_output)
+
+        clip_features = torch.stack(clip_features)
+        return clip_features
+    
+    def forward(self, txt, styles, use_text_style=False):
+        if use_text_style:
+            styles_emb = self.get_text_outputs(styles)
+        else:
+            styles_emb = self.forward_image(styles)
+            
+        content_emb = self.get_text_emb(txt)
+        x = self.cross_att(content_emb, styles_emb)
+        
+        return x
+    
+    def freeze(self):
+        self.model = self.model.eval()
+        for param in self.model.parameters():
+            param.requires_grad = False
+    
 if __name__ == "__main__":
     from ldm.util import count_params
     model = FrozenCLIPEmbedder()

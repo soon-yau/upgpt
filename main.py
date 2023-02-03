@@ -351,10 +351,11 @@ class ImageLogger(Callback):
 
     def log_img(self, pl_module, batch, batch_idx, split="train"):
         check_idx = batch_idx if self.log_on_batch_idx else pl_module.global_step
-        if (self.check_frequency(check_idx) and  # batch_idx % self.batch_freq == 0
+        if ((self.check_frequency(check_idx) and  # batch_idx % self.batch_freq == 0
                 hasattr(pl_module, "log_images") and
                 callable(pl_module.log_images) and
-                self.max_images > 0):
+                self.max_images > 0) or
+                (split=='val' and batch_idx<2)):
             logger = type(pl_module.logger)
 
             is_train = pl_module.training
