@@ -42,6 +42,16 @@ class Loader(Dataset):
     def __getitem__(self, ind):
         pass
 
+def convert_fname(x):
+    a, b = os.path.split(x)
+    i = b.rfind('_')
+    x = a + '/' +b[:i] + b[i+1:]
+    return 'fashion'+x.split('.jpg')[0].replace('id_','id').replace('/','')
+
+def get_name(src, dst):
+    src = convert_fname(src)
+    dst = convert_fname(dst)
+    return src + '__' + dst + '_vis'
 
 class DeepFashionPair(Loader):
     
@@ -108,7 +118,7 @@ class DeepFashionPair(Loader):
             self.mask_transform = T.Compose([
                 T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
                 T.ToTensor(),
-                T.Lambda(lambda x: (torch.mean(x,0, keepdim=True) < 0.94) * 2. - 1.)
+                T.Lambda(lambda x: torch.mean(x,0, keepdim=True)  * 2. - 1.)
             ])             
 
         self.smpl_image_transform = T.Compose([
@@ -125,7 +135,7 @@ class DeepFashionPair(Loader):
         try:
 
             row = self.df.iloc[index]
-
+            fname = get_name(row['from'], row['to'])
             # source - get fashion styles
             source = self.map_df.loc[row['from']]
             src_path = str(self.image_root/source.name)
@@ -149,7 +159,7 @@ class DeepFashionPair(Loader):
             style_images = torch.stack(style_images)  
             
             
-            data = {"test_id":  index,
+            data = {"fname": fname, 
                     "src_image": self.image_transform(source_image),
                     "styles": style_images}
 
@@ -161,7 +171,7 @@ class DeepFashionPair(Loader):
             target_path = str(self.image_root/target.name)
             target_image = self.image_transform(Image.open(target_path))
 
-            data.update({"image": target_image, "txt": text})
+            data.update({"image": target_image, "txt": text,})
 
             # image
             #if self.pad:

@@ -1324,39 +1324,41 @@ class LatentDiffusion(DDPM):
         concat_root = Path(self.logger.save_dir)/'results/concats'
         style_root = Path(self.logger.save_dir)/'results/styles'
         gt_root = Path(self.logger.save_dir)/'results/gt'
+        recon_root = Path(self.logger.save_dir)/'results/recon'
 
-        os.makedirs(str(log_root), exist_ok=True)
-        os.makedirs(str(concat_root), exist_ok=True)
-        os.makedirs(str(style_root), exist_ok=True)
-        os.makedirs(str(gt_root), exist_ok=True)
-
-        log = self.log_images(batch, N=100, ddim_steps=200)
+        for root_name in [log_root, concat_root, style_root, gt_root, recon_root]:
+            os.makedirs(str(root_name), exist_ok=True)
+            
+        log = self.log_images(batch, N=100, ddim_steps=200, 
+                            unconditional_guidance_scale=3.0,
+                            unconditional_guidance_label= [""])
 
         crop = T.CenterCrop((256, 176))
 
-        images = crop(log['samples'].detach())
-        images = torch.clamp(images, -1., 1.) * 0.5 + 0.5
-        log["reconstruction"] = crop(torch.clamp(log["reconstruction"], -1., 1.) * 0.5 + 0.5)
+        for k in ['samples', 'reconstruction']:
+            log[k] = crop(log[k].detach())
+            log[k] = (torch.clamp(log[k], -1., 1.) + 1.0) / 2.0
 
         for k in ['smpl_image', 'src_image', 'image']:
-            batch[k] = crop(rearrange(batch[k],'b h w c -> b c h w' ) * 0.5 + 0.5)
+            batch[k] = crop((rearrange(batch[k],'b h w c -> b c h w' ) + 1.0) / 2.0)                 
                 
-        for test_index, sample, smpl_image, src_image, target_image, recon_image in \
-                zip(batch['test_id'], images, batch['smpl_image'], batch['src_image'], batch['image'], log["reconstruction"]):
+        for fname, sample, smpl_image, src_image, target_image, recon_image in \
+                zip(batch['fname'], log['samples'], batch['smpl_image'], batch['src_image'], batch['image'], log["reconstruction"]):
             concat = torch.cat([src_image, sample, recon_image, smpl_image], 2)
-            T.ToPILImage()(concat).save(concat_root/f'{test_index}.jpg')
-            T.ToPILImage()(sample).save(log_root/f'{test_index}.jpg')
-            T.ToPILImage()(target_image).save(gt_root/f'{test_index}.jpg')
+            T.ToPILImage()(concat).save(concat_root/f'{fname}.jpg')
+            T.ToPILImage()(sample).save(log_root/f'{fname}.jpg')
+            T.ToPILImage()(target_image).save(gt_root/f'{fname}.jpg')
+            T.ToPILImage()(recon_image).save(recon_root/f'{fname}.jpg')
         
         
-        for test_index, style_batch in zip(batch['test_id'], batch['styles']):
+        for fname, style_batch in zip(batch['fname'], batch['styles']):
             style_images = []
             for style_image in style_batch:
                 style_images.append(denorm(style_image))
 
             style_images = torch.cat(style_images, 2)
-            T.ToPILImage()(style_images).save(style_root/f'{test_index}.jpg')
-
+            T.ToPILImage()(style_images).save(style_root/f'{fname}.jpg')
+        
 
     @torch.no_grad()
     def log_images(self, batch, N=8, n_row=4, sample=True, ddim_steps=200, ddim_eta=1., return_keys=None,

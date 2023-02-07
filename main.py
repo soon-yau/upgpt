@@ -752,6 +752,9 @@ if __name__ == "__main__":
                 raise
         if not opt.no_test and not trainer.interrupted:
             trainer.test(model, data)
+            if not opt.train:
+                resultdir = os.path.join(logdir, "results")
+                os.system(f"python scripts/eval_metrics.py --dir {resultdir}") 
     except Exception:
         if opt.debug and trainer.global_rank == 0:
             try:
