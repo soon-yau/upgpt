@@ -61,6 +61,7 @@ class DDPM(pl.LightningModule):
                  use_ema=True,
                  first_stage_key="image",
                  image_size=256, # int or list [height, width]
+                 crop_size=[256, 176],
                  channels=3,
                  log_every_t=100,
                  clip_denoised=True,
@@ -119,7 +120,7 @@ class DDPM(pl.LightningModule):
         self.logvar = torch.full(fill_value=logvar_init, size=(self.num_timesteps,))
         if self.learn_logvar:
             self.logvar = nn.Parameter(self.logvar, requires_grad=True)
-
+        self.crop_size = crop_size
 
     def register_schedule(self, given_betas=None, beta_schedule="linear", timesteps=1000,
                           linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3):
@@ -925,8 +926,12 @@ class LatentDiffusion(DDPM):
             return self.first_stage_model.encode(x)
 
     def shared_step(self, batch, **kwargs):
+        '''
         x, c, w = self.get_input(batch, self.first_stage_key, return_loss_w=True)
         loss = self(x, c, loss_w=w)
+        '''
+        x, c = self.get_input(batch, self.first_stage_key, return_loss_w=False)
+        loss = self(x, c)        
         return loss
 
     def forward(self, x, c, *args, **kwargs):
@@ -1333,7 +1338,7 @@ class LatentDiffusion(DDPM):
                             unconditional_guidance_scale=3.0,
                             unconditional_guidance_label= [""])
 
-        crop = T.CenterCrop((256, 176))
+        crop = T.CenterCrop((self.crop_size))
 
         for k in ['samples', 'reconstruction']:
             log[k] = crop(log[k].detach())

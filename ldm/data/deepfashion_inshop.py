@@ -60,7 +60,8 @@ class DeepFashionPair(Loader):
                 image_dir,
                 pair_file, # from, to 
                 data_file, # point to style features and text
-                image_sizes=None, 
+                image_size=[256, 192], 
+                f=8,
                 pad=None,
                 max_size=0, 
                 test_split_seed=None,
@@ -77,7 +78,7 @@ class DeepFashionPair(Loader):
         self.texts = json.load(open(self.root/'captions.json'))
         self.map_df = pd.read_csv(data_file)
         self.map_df.set_index('image', inplace=True)
-
+        self.vae_z_size = tuple([x//f for x in image_size])
         dfs = [pd.read_csv(f) for f in pair_file]
         self.df = pd.concat(dfs, ignore_index=True)
         
@@ -86,9 +87,9 @@ class DeepFashionPair(Loader):
         
         
         ''' pad and resize '''
-        self.image_sizes = image_sizes
-        transform_list = [T.Resize(image_sizes)] if image_sizes else []
-        self.image_transform = T.Compose(transform_list + [
+        #self.image_size = image_size
+        #transform_list = [T.Resize(image_size)] if image_size else []
+        self.image_transform = T.Compose([
             T.ToTensor(),
             T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
 
@@ -104,19 +105,19 @@ class DeepFashionPair(Loader):
 
 
         self.loss_w_transform = T.Compose([
-            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+            T.Resize(size=self.vae_z_size, interpolation=T.InterpolationMode.NEAREST),
             T.ToTensor(),
         ])    
         
         if self.input_mask_type=='mask':
             self.mask_transform = T.Compose([
-                T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+                T.Resize(size=self.vae_z_size, interpolation=T.InterpolationMode.NEAREST),
                 T.ToTensor(),
                 T.Lambda(lambda x: x * 2. - 1.)
             ])                
         else :
             self.mask_transform = T.Compose([
-                T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
+                T.Resize(size=self.vae_z_size, interpolation=T.InterpolationMode.BILINEAR),
                 T.ToTensor(),
                 T.Lambda(lambda x: torch.mean(x,0, keepdim=True)  * 2. - 1.)
             ])             
@@ -204,18 +205,20 @@ class DeepFashionPair(Loader):
             segm = np.array(Image.open(segm_path))
 
             #person_mask = self.segmenter.get_mask(segm, {'background':0.0}, default_value=1.0)
+            '''
             loss_weight = self.segmenter.get_mask(segm, 
                                         {'background':0.5, 
                                         'left-arm':2.0, 
                                         'right-arm':2.0, 
                                         'face':5.0})
             loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
-
+            '''
 
             data.update({'smpl':smpl_pose, 
                          'smpl_image':smpl_image, 
                          'person_mask':person_mask,
-                         'loss_w':loss_weight})
+                         #'loss_w':loss_weight
+                         })
 
 
             return data
@@ -230,7 +233,7 @@ class DeepFashionImageOnly(Loader):
     
     def __init__(self, 
                 folder, 
-                image_sizes, 
+                image_size, 
                 pose=None,
                 is_train=True,
                 test_size=64, 
@@ -243,9 +246,9 @@ class DeepFashionImageOnly(Loader):
         
         train, test = train_test_split(images, test_size=test_size, random_state=test_split_seed)
         self.images = train if is_train else test
-        self.image_sizes = image_sizes
+        self.image_size = image_size
         self.image_transform = T.Compose([
-            T.Resize(image_sizes, antialias=True),
+            T.Resize(image_size, antialias=True),
             T.ToTensor(),
             T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
         self.pad = pad
