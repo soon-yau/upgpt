@@ -172,7 +172,7 @@ lightning:
           plot_progressive_rows: False
           plot_diffusion_rows: False
           N: 4
-          unconditional_guidance_scale: 7.5
+          unconditional_guidance_scale: 3.0
           unconditional_guidance_label: [""]
   
     # early_stopping:
