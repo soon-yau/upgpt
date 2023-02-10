@@ -57,8 +57,7 @@ model:
     first_stage_config:
       target: ldm.models.autoencoder.AutoencoderKL
       params:
-        ckpt_path: "/user/HS501/sc02490/stable-diffusion/models/first_stage_models/kl-f8-deepfashion/deepfashion_inshop_256.ckpt"
-        #ckpt_path: models/first_stage_models/kl-f4/model.ckpt
+        ckpt_path: "/user/HS501/sc02490/stable-diffusion/models/first_stage_models/kl-f8-deepfashion/deepfashion_512.ckpt"
         embed_dim: 4
         monitor: val/rec_loss
         ddconfig:
@@ -103,45 +102,50 @@ data:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/vol/research/posetoimage/datasets/deepfashion_inshop"
+        pair_file: 
+         #- pairs-train-all.csv
+         - solo-train-all.csv
         input_mask_type: smpl
         image_size:
         - 512
         - 384
         f: 8
         image_dir: img_512
-        data_file: train.csv
-        pair_file: 
-         #- pairs-train-all.csv
-         - solo-train-all.csv        
+        data_file: deepfashion_map.csv
+        df_filter: segm    
 
     validation:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/vol/research/posetoimage/datasets/deepfashion_inshop"
+        pair_file: 
+          #- pairs-test-all.csv
+          - solo-test-all.csv
         input_mask_type: smpl
         image_size:
         - 512
         - 384
         f: 8
         image_dir: img_512
-        data_file: test.csv
-        pair_file: 
-          - pairs-test-all.csv
+        data_file: deepfashion_map.csv
+        df_filter: segm
         
 
     test:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/vol/research/posetoimage/datasets/deepfashion_inshop"
+        pair_file: 
+          #- pairs-test-all.csv
+          - solo-test-all.csv
         input_mask_type: smpl
         image_size:
         - 512
         - 384
-        f: 8   
+        f: 8
         image_dir: img_512
-        data_file: test.csv
-        pair_file: 
-          - pairs-test-all.csv
+        data_file: deepfashion_map.csv
+        df_filter: segm
         
 
 lightning:
@@ -150,7 +154,7 @@ lightning:
   modelcheckpoint:
     params:
       save_last: True
-      every_n_epochs: 2
+      every_n_epochs: 1
       save_top_k: 1
       monitor: val/loss_simple_ema
 
@@ -186,6 +190,6 @@ lightning:
     benchmark: True
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
-    check_val_every_n_epoch: 2
+    check_val_every_n_epoch: 1
     max_epochs: 1
     #max_steps: 40000
