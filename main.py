@@ -10,6 +10,7 @@ from omegaconf import OmegaConf
 from torch.utils.data import random_split, DataLoader, Dataset, Subset
 from functools import partial
 from PIL import Image
+from torchvision import transforms as T
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.trainer import Trainer
@@ -333,6 +334,7 @@ class ImageLogger(Callback):
     def log_local(self, save_dir, split, images,
                   global_step, current_epoch, batch_idx):
         root = os.path.join(save_dir, "images", split)
+
         for k in images:
             grid = torchvision.utils.make_grid(images[k], nrow=4)
             if self.rescale:
@@ -349,6 +351,40 @@ class ImageLogger(Callback):
             os.makedirs(os.path.split(path)[0], exist_ok=True)
             Image.fromarray(grid).save(path)
 
+    def save_styles(self, pl_module, batch, split, batch_idx, max_images):
+        denorm = T.Compose([ T.Normalize(mean = [ 0., 0., 0. ],  std = [ 1/0.226862954, 1/0.26130258, 1/0.27577711 ]),
+                             T.Normalize(mean = [ -0.48145466, -0.4578275, -0.40821073], std = [ 1., 1., 1. ]),      ])
+
+        N = min(batch['styles'].shape[0], self.max_images)
+        all_styles = []
+        for style_batch in zip(batch['styles'][:N]):
+            style_images = []
+            for style_image in style_batch:
+                style_images.append(denorm(style_image))
+            style_images = torch.cat(style_images, 2)
+            style_images = torchvision.utils.make_grid(style_images, nrow=len(style_images))
+            all_styles.append(style_images)
+
+        image = torch.cat(all_styles, 1)
+        
+        # save local
+        root = os.path.join(pl_module.logger.save_dir, "images", split)
+        filename = "{}_gs-{:06}_e-{:06}_b-{:06}.png".format(
+            'styles',
+            pl_module.global_step,
+            pl_module.current_epoch,
+            batch_idx)
+        path = os.path.join(root, filename)
+        os.makedirs(os.path.split(path)[0], exist_ok=True)
+        T.ToPILImage()(image).save(path)
+
+        # save testtube
+        tag = f"{split}/styles"
+        pl_module.logger.experiment.add_image(
+            tag, image,
+            global_step=pl_module.global_step)        
+        return all_styles
+
     def log_img(self, pl_module, batch, batch_idx, split="train"):
         check_idx = batch_idx if self.log_on_batch_idx else pl_module.global_step
         if ((self.check_frequency(check_idx) and  # batch_idx % self.batch_freq == 0
@@ -356,11 +392,14 @@ class ImageLogger(Callback):
                 callable(pl_module.log_images) and
                 self.max_images > 0) or
                 (split=='val' and batch_idx<2)):
+                
             logger = type(pl_module.logger)
 
             is_train = pl_module.training
             if is_train:
                 pl_module.eval()
+
+
             with torch.no_grad():
                 images = pl_module.log_images(batch, split=split, **self.log_images_kwargs)
 
@@ -381,7 +420,7 @@ class ImageLogger(Callback):
 
             logger_log_images = self.logger_log_images.get(logger, lambda *args, **kwargs: None)
             logger_log_images(pl_module, images, pl_module.global_step, split)
-
+            self.save_styles(pl_module, batch, split, batch_idx, self.max_images)
             if is_train:
                 pl_module.train()
 
@@ -490,9 +529,11 @@ if __name__ == "__main__":
             "If you want to resume training in a new log folder, "
             "use -n/--name in combination with --resume_from_checkpoint"
         )
+    first_time = False
     if opt.resume:
         if not os.path.exists(opt.resume):
-            raise ValueError("Cannot find {}".format(opt.resume))
+            os.makedirs(opt.resume)
+            #raise ValueError("Cannot find {}".format(opt.resume))
         if os.path.isfile(opt.resume):
             paths = opt.resume.split("/")
             # idx = len(paths)-paths[::-1].index("logs")+1
@@ -503,10 +544,10 @@ if __name__ == "__main__":
             assert os.path.isdir(opt.resume), opt.resume
             logdir = opt.resume.rstrip("/")
             ckpt = os.path.join(logdir, "checkpoints", "last.ckpt")
-
-        opt.resume_from_checkpoint = ckpt
-        base_configs = sorted(glob.glob(os.path.join(logdir, "configs/*.yaml")))
-        opt.base = base_configs + opt.base
+        if  os.path.isfile(ckpt): 
+            opt.resume_from_checkpoint = ckpt
+            base_configs = sorted(glob.glob(os.path.join(logdir, "configs/*.yaml")))
+            opt.base = base_configs + opt.base
         _tmp = logdir.split("/")
         nowname = _tmp[-1]
     else:

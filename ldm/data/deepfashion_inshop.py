@@ -60,6 +60,7 @@ class DeepFashionPair(Loader):
                 image_dir,
                 pair_file, # from, to 
                 data_file, # point to style features and text
+                df_filter=None,
                 image_size=[256, 192], 
                 f=8,
                 pad=None,
@@ -81,6 +82,8 @@ class DeepFashionPair(Loader):
         self.vae_z_size = tuple([x//f for x in image_size])
         dfs = [pd.read_csv(f) for f in pair_file]
         self.df = pd.concat(dfs, ignore_index=True)
+        if df_filter:
+            self.df = self.df[self.df[df_filter]==True].reset_index()
         
         if max_size != 0:
             _, self.df = train_test_split(self.df, test_size=max_size, random_state=test_split_seed)

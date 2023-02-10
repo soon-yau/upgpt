@@ -26,7 +26,8 @@ dependencies:
     - kornia==0.6
     - lpips
     - pytorch_msssim
-    - pytorch_fid
+    - pytorch_fid==0.3.0
+    - scikit-learn==1.1.3
     - -e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
     - -e git+https://github.com/openai/CLIP.git@main#egg=clip
     - -e .
