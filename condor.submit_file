@@ -35,7 +35,7 @@ environment = "mount=$ENV(PWD),/user/HS501/sc02490/,/vol/research/posetoimage/"
 # -------------------------------------
 # Requirements for the Job (Requirements are explained in further detail in example09.submit_file)
 # NOTE: HasStornext is not valid on orca.
-requirements = (HasStorenext) && )(CUDAGlobalMemoryMb > 20000)  &&  (CUDACapability >= 7.0)
+requirements = (HasStorenext) && (CUDAGlobalMemoryMb > 20000)  &&  (CUDACapability >= 7.0)
 
 # --------------------------------------
 # Resources
