@@ -705,8 +705,11 @@ class LatentDiffusion(DDPM):
                     #here 
                     xc = batch[cond_key]
                     if self.cond_stage_key_2:
+                        cond_2 = batch[self.cond_stage_key_2]
+                        if type(cond_2) != list:
+                            cond_2 = cond_2.to(self.device)
                         xc = {cond_key: xc,
-                              self.cond_stage_key_2: batch[self.cond_stage_key_2].to(self.device)
+                              self.cond_stage_key_2: cond_2
                         }
                     # get styles
                 elif cond_key == 'class_label':
@@ -926,12 +929,13 @@ class LatentDiffusion(DDPM):
             return self.first_stage_model.encode(x)
 
     def shared_step(self, batch, **kwargs):
-        '''
+        
         x, c, w = self.get_input(batch, self.first_stage_key, return_loss_w=True)
         loss = self(x, c, loss_w=w)
         '''
         x, c = self.get_input(batch, self.first_stage_key, return_loss_w=False)
-        loss = self(x, c)        
+        loss = self(x, c) 
+        '''       
         return loss
 
     def forward(self, x, c, *args, **kwargs):
@@ -1381,7 +1385,7 @@ class LatentDiffusion(DDPM):
                                            bs=N)
         N = min(x.shape[0], N)
         n_row = min(x.shape[0], n_row)
-        log["inputs"] = x
+        #log["inputs"] = x
         log["reconstruction"] = xrec
         if self.model.conditioning_key is not None:
             if hasattr(self.cond_stage_model, "decode"):

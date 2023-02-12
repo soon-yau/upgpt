@@ -6,12 +6,12 @@
 
 #---------------------------------------------
 # Name your batch so it's easy to distinguish in the q.
-JobBatchName = "Deepfashion"
+JobBatchName = "Deepfashion.a100"
 
 # --------------------------------------------
 # Executable and its arguments
 executable    = $ENV(PWD)/miniconda3/envs/ldm/bin/python
-arguments     = $ENV(PWD)/main.py -t --base $ENV(PWD)/configs/deepfashion/highres_condor.yaml --resume $ENV(PWD)/logs/deepfashion_512_clip  --gpus 0,1 --scale_lr False --num_nodes 1
+arguments     = $ENV(PWD)/main.py -t --base $ENV(PWD)/configs/deepfashion/highres_condor.a100.yaml --resume $ENV(PWD)/logs/deepfashion_512_a100  --gpus 0,1 --scale_lr False --num_nodes 1
 
 
 # ---------------------------------------------------

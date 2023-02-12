@@ -67,6 +67,7 @@ class DeepFashionPair(Loader):
                 max_size=0, 
                 test_split_seed=None,
                 input_mask_type='mask',
+                loss_weight=None,
                 **kwargs):
         super().__init__(folder, **kwargs)
         assert input_mask_type in ['mask', 'smpl']
@@ -80,6 +81,7 @@ class DeepFashionPair(Loader):
         self.map_df = pd.read_csv(data_file)
         self.map_df.set_index('image', inplace=True)
         self.vae_z_size = tuple([x//f for x in image_size])
+        self.loss_weight = loss_weight
         dfs = [pd.read_csv(f) for f in pair_file]
         self.df = pd.concat(dfs, ignore_index=True)
         if df_filter:
@@ -214,13 +216,15 @@ class DeepFashionPair(Loader):
                                         'left-arm':2.0, 
                                         'right-arm':2.0, 
                                         'face':5.0})
-            loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
             '''
+            loss_weight = self.segmenter.get_mask(segm, self.loss_weight)
+            loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
+            
 
             data.update({'smpl':smpl_pose, 
                          'smpl_image':smpl_image, 
                          'person_mask':person_mask,
-                         #'loss_w':loss_weight
+                         'loss_w':loss_weight
                          })
 
 

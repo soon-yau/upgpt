@@ -9,11 +9,12 @@ model:
     timesteps: 1000
     first_stage_key: "image"
     cond_stage_key: "txt"
+    cond_stage_key_2: "styles"
     concat_key: "person_mask"
     image_size: [64, 48] #[128, 96]
     crop_size: [512, 352]
     channels: 4
-    cond_stage_trainable: false   # Note: different from the one we trained before
+    cond_stage_trainable: true   # Note: different from the one we trained before
     conditioning_key: hybrid #crossattn
     scale_factor: 0.18215
 
@@ -43,7 +44,7 @@ model:
         image_size: 32 # unused
         in_channels: 5
         out_channels: 4
-        model_channels: 224 #224 #320
+        model_channels: 160 #224 #320
         attention_resolutions: [ 4, 2, 1 ]
         num_res_blocks: 2
         channel_mult: [ 1, 2, 4, 4 ]
@@ -79,12 +80,11 @@ model:
           target: torch.nn.Identity
 
     cond_stage_config:
-      target: ldm.modules.encoders.modules.FrozenCLIPEmbedder
+      target: ldm.modules.encoders.modules.CLIPTextImageCrossAtten
+      params:
+        style_encode: image
 
     extra_cond_stages:
-      style_cond:
-        target: ldm.modules.encoders.modules.FrozenClipImageEmbedder2
-        cond_stage_key: "styles"
       pose_cond:
         target: ldm.modules.poses.poses.LinearProject
         cond_stage_key: "smpl"
@@ -95,8 +95,8 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 4
-    num_workers: 4
+    batch_size: 7
+    num_workers: 7
     #num_val_workers: 0 # Avoid a weird val dataloader issue
     train:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
@@ -112,14 +112,9 @@ data:
         f: 8
         image_dir: img_512
         data_file: deepfashion_map.csv
-        #df_filter: segm
-        loss_weight:
-          background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
-    
-    validation:          
+        df_filter: segm
+
+    validation:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
@@ -133,12 +128,8 @@ data:
         f: 8
         image_dir: img_512
         data_file: deepfashion_map.csv
-        #df_filter: segm
-        loss_weight:
-          background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
+        df_filter: segm
+
 
     test:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
@@ -154,12 +145,8 @@ data:
         f: 8
         image_dir: img_512
         data_file: deepfashion_map.csv
-        #df_filter: segm
-        loss_weight:
-          background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
+        df_filter: segm
+
 lightning:
   find_unused_parameters: False
 
@@ -175,7 +162,7 @@ lightning:
       target: main.ImageLogger
       params:
         batch_frequency: 1000
-        max_images: 3
+        max_images: 4
         increase_log_steps: False
         log_first_step: True
         #log_all_val: False #True
