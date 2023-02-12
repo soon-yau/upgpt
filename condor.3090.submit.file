@@ -11,7 +11,7 @@ JobBatchName = "Deepfashion"
 # --------------------------------------------
 # Executable and its arguments
 executable    = $ENV(PWD)/miniconda3/envs/ldm/bin/python
-arguments     = $ENV(PWD)/main.py -t --base $ENV(PWD)/configs/deepfashion/highres_condor.yaml --resume $ENV(PWD)/logs/deepfashion_512  --gpus 0, --scale_lr False --num_nodes 1
+arguments     = $ENV(PWD)/main.py -t --base $ENV(PWD)/configs/deepfashion/highres_condor.yaml --resume $ENV(PWD)/logs/deepfashion_512_clip  --gpus 0,1 --scale_lr False --num_nodes 1
 
 
 # ---------------------------------------------------
@@ -30,23 +30,23 @@ error  = c$(cluster).p$(process).error
 should_transfer_files = YES
 
 # Make certain project spaces available in container
-environment = "mount=$ENV(PWD),/vol/research/posetoimage/"
+environment = "mount=$ENV(PWD),/mnt/fast/nobackup/users/sc02490/"
 
 # -------------------------------------
 # Requirements for the Job (Requirements are explained in further detail in example09.submit_file)
 # NOTE: HasStornext is not valid on orca.
-requirements = (HasStorenext) && (CUDAGlobalMemoryMb > 20000)  &&  (CUDACapability >= 7.0)
+requirements = (CUDAGlobalMemoryMb > 70000)  &&  (CUDACapability >= 7.0)
 
 # --------------------------------------
 # Resources
-request_GPUs     = 1
+request_GPUs     = 2
 # this needs to be specified for the AI@Surrey cluster if requesting a GPU
-+GPUMem          = 10000  
-#request_CPUs     = 48
-request_memory   = 64G
++GPUMem          = 80000  
+request_CPUs     = 40
+request_memory   = 200G
 
 #This job will complete in less than 1 hour
-+JobRunTime = 4
++JobRunTime = 72
 
 #This job can checkpoint
 +CanCheckpoint = true
