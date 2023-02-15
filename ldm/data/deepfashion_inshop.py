@@ -51,7 +51,7 @@ def convert_fname(x):
 def get_name(src, dst):
     src = convert_fname(src)
     dst = convert_fname(dst)
-    return src + '__' + dst + '_vis'
+    return src + '___' + dst
 
 class DeepFashionPair(Loader):
     
@@ -127,9 +127,9 @@ class DeepFashionPair(Loader):
         
         self.segmenter = LipSegmenter(self.clip_transform)
         self.style_names = style_names
+
     def __len__(self):
         return len(self.df)
-
     
     def __getitem__(self, index):
         try:
