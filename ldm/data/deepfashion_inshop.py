@@ -51,7 +51,7 @@ def convert_fname(x):
 def get_name(src, dst):
     src = convert_fname(src)
     dst = convert_fname(dst)
-    return src + '__' + dst + '_vis'
+    return src + '___' + dst
 
 class DeepFashionPair(Loader):
     
