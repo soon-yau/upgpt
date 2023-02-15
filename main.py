@@ -64,6 +64,7 @@ def get_parser(**parser_kwargs):
     parser.add_argument(
         "-b",
         "--base",
+        required=True,
         nargs="*",
         metavar="base_config.yaml",
         help="paths to base configs. Loaded from left-to-right. "
@@ -336,7 +337,7 @@ class ImageLogger(Callback):
         root = os.path.join(save_dir, "images", split)
 
         for k in images:
-            grid = torchvision.utils.make_grid(images[k], nrow=4)
+            grid = torchvision.utils.make_grid(images[k], nrow=5)
             if self.rescale:
                 grid = (grid + 1.0) / 2.0  # -1,1 -> 0,1; c,h,w
             grid = grid.transpose(0, 1).transpose(1, 2).squeeze(-1)
@@ -353,6 +354,8 @@ class ImageLogger(Callback):
 
     @rank_zero_only
     def save_styles(self, pl_module, batch, split, batch_idx, max_images):
+        if 'styles' not in batch:
+            return
         denorm = T.Compose([ T.Normalize(mean = [ 0., 0., 0. ],  std = [ 1/0.226862954, 1/0.26130258, 1/0.27577711 ]),
                              T.Normalize(mean = [ -0.48145466, -0.4578275, -0.40821073], std = [ 1., 1., 1. ]),      ])
 
@@ -384,7 +387,7 @@ class ImageLogger(Callback):
         pl_module.logger.experiment.add_image(
             tag, image,
             global_step=pl_module.global_step)        
-        return all_styles
+        
 
     def log_img(self, pl_module, batch, batch_idx, split="train"):
         check_idx = batch_idx if self.log_on_batch_idx else pl_module.global_step
