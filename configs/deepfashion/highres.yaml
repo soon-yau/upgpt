@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 2.e-06
+  base_learning_rate: 5.e-06
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
@@ -112,12 +112,13 @@ data:
         f: 8
         image_dir: img_512
         data_file: deepfashion_map.csv
-        #df_filter: segm
+        df_filter: segm
+        dropout: 0.1
         loss_weight:
           background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
+          #left-arm: 1.0
+          #right-arm: 1.0 
+          face: 2.0
     
     validation:          
       target: ldm.data.deepfashion_inshop.DeepFashionPair
@@ -133,12 +134,12 @@ data:
         f: 8
         image_dir: img_512
         data_file: deepfashion_map.csv
-        #df_filter: segm
+        df_filter: segm
         loss_weight:
           background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
+          #left-arm: 2.0
+          #right-arm: 2.0 
+          face: 2.0
 
     test:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
@@ -154,7 +155,7 @@ data:
         f: 8
         image_dir: img_512
         data_file: deepfashion_map.csv
-        #df_filter: segm
+        df_filter: segm
         loss_weight:
           background: 0.5
           left-arm: 2.0

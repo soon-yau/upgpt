@@ -69,6 +69,7 @@ class DeepFashionPair(Loader):
                 input_mask_type='mask',
                 loss_weight=None,
                 image_only=False,
+                dropout=None,
                 **kwargs):
         super().__init__(folder, **kwargs)
         assert input_mask_type in ['mask', 'smpl']
@@ -84,6 +85,7 @@ class DeepFashionPair(Loader):
         self.map_df.set_index('image', inplace=True)
         self.vae_z_size = tuple([x//f for x in image_size])
         self.loss_weight = loss_weight
+        self.dropout = dropout
         dfs = [pd.read_csv(f) for f in pair_file]
         self.df = pd.concat(dfs, ignore_index=True)
         if df_filter:
@@ -168,11 +170,16 @@ class DeepFashionPair(Loader):
             if styles_path == np.nan:
                 return self.skip_sample(index)
             
+            drop_style = False
+            if self.dropout:
+                if random.uniform(0,1) < self.dropout:
+                    drop_style = True
+
             style_images = []
             for style_name in self.style_names:
                 f_path = self.style_root/styles_path/f'{style_name}.jpg'
                 
-                if f_path.exists():
+                if f_path.exists() and not drop_style:
                     style_image = self.clip_transform((Image.open(f_path)))
                 else:
                     style_image = self.clip_norm(torch.zeros(3, 224, 224))
@@ -239,74 +246,11 @@ class DeepFashionPair(Loader):
             return self.skip_sample(index)
 
 
-class DeepFashionSample(Dataset):
+class DeepFashionSample(DeepFashionPair):
     
     def __init__(self, 
-                folder,
-                image_dir,
-                pair_file, # from, to 
-                data_file, # point to style features and text
-                image_sizes=None, 
-                pad=None,
-                input_mask_type='mask',
                 **kwargs):
         super().__init__(**kwargs)
-        assert input_mask_type in ['mask', 'smpl']
-        self.input_mask_type = input_mask_type
-        self.root = Path(folder)
-        self.image_root = self.root/image_dir
-        self.pose_root = self.root/'smpl_256' if self.input_mask_type=='mask' else self.root/'smpl'
-        self.style_root = self.root/'styles'
-        self.segm_root = self.root/'lip_segm_256'
-        self.texts = json.load(open(self.root/'captions.json'))
-        self.map_df = pd.read_csv(data_file)
-        self.map_df.set_index('image', inplace=True)
-
-        dfs = [pd.read_csv(f) for f in pair_file]
-        self.df = pd.concat(dfs, ignore_index=True)
-        
-        ''' pad and resize '''
-        self.image_sizes = image_sizes
-        transform_list = [T.Resize(image_sizes)] if image_sizes else []
-        self.image_transform = T.Compose(transform_list + [
-            T.ToTensor(),
-            T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
-
-        self.pad = None if pad is None else tuple(pad)
-        ''' '''
-
-        self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
-                                    std=(0.26862954, 0.26130258, 0.27577711))
-        self.clip_transform = T.Compose([
-            T.ToTensor(),
-            self.clip_norm
-        ])
-
-
-        self.loss_w_transform = T.Compose([
-            T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
-            T.ToTensor(),
-        ])    
-        
-        if self.input_mask_type=='mask':
-            self.mask_transform = T.Compose([
-                T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
-                T.ToTensor(),
-                T.Lambda(lambda x: x * 2. - 1.)
-            ])                
-        else :
-            self.mask_transform = T.Compose([
-                T.Resize(size=(32,24), interpolation=T.InterpolationMode.NEAREST),    
-                T.ToTensor(),
-                T.Lambda(lambda x: torch.mean(x,0, keepdim=True)  * 2. - 1.)
-            ])             
-
-        self.smpl_image_transform = T.Compose([
-            #T.Resize(size=256),
-            T.CenterCrop(size=(256, 192))])
-        
-        self.segmenter = LipSegmenter(self.clip_transform)
-        self.style_names = style_names
 
     def __len__(self):
         return len(self.df)

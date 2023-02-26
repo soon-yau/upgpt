@@ -11,7 +11,7 @@ import numpy as np
 from glob import glob
 import argparse
 import pdb
-from pytorch_msssim import ssim
+from pytorch_msssim import ssim, ms_ssim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import lpips
@@ -93,12 +93,13 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
     ssim_scores = []
     #lpips_alex = []
     lpips_scores = []
-
+    msssim_scores =[]
+    
     device = f'cuda:{gpu}'
     #loss_fn_alex = lpips.LPIPS(net='alex').to(device)
     loss_fn_vgg = lpips.LPIPS(net='vgg').to(device)
 
-
+    ret = os.popen(f"python -m pytorch_fid {gt_dir} {sample_dir}  --device {device} --batch-size {batch_size}")
     loader = iter(DataLoader(Loader(gt_dir, sample_dir),
                         batch_size=batch_size, shuffle=False))
 
@@ -107,15 +108,18 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
         sample = sample.to(device)
         gt = gt.to(device)
         ssim_scores.extend(ssim(sample, gt, data_range=1, size_average=False).cpu().numpy().tolist())
+        msssim_scores.extend(ms_ssim(sample, gt, data_range=1, size_average=False).cpu().numpy().tolist())
         lpips_scores.extend(loss_fn_vgg(sample, gt).view(-1).detach().cpu().numpy().tolist())
 
-    ret = os.popen(f"python -m pytorch_fid {gt_dir} {sample_dir}")  
+    
     fid_str = ret.read()
 
     df = pd.DataFrame({'name':fnames, 
                         'SSIM':ssim_scores,
                         #'lpips_alex': lpips_alex,
-                        'LPIPS': lpips_scores})
+                        'LPIPS': lpips_scores,
+                        'MSSIM': msssim_scores
+                        })
     log_dir = Path(sample_dir)/'../'
     df.to_csv(log_dir/'metrics.csv', index=False)
 
@@ -124,7 +128,7 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
     print('\n'+fid_str.split('\n')[0])
     text_file.write(fid_str)
 
-    for metric in ['SSIM', 'LPIPS']:
+    for metric in ['SSIM', 'MSSIM', 'LPIPS']:
         line = f"{metric}: {df[metric].mean()}"
         print(line)
         text_file.write(line+'\n')
