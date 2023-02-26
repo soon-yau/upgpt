@@ -61,6 +61,7 @@ class DDPM(pl.LightningModule):
                  use_ema=True,
                  first_stage_key="image",
                  image_size=256, # int or list [height, width]
+                 crop_size=[256, 176],
                  channels=3,
                  log_every_t=100,
                  clip_denoised=True,
@@ -119,7 +120,7 @@ class DDPM(pl.LightningModule):
         self.logvar = torch.full(fill_value=logvar_init, size=(self.num_timesteps,))
         if self.learn_logvar:
             self.logvar = nn.Parameter(self.logvar, requires_grad=True)
-
+        self.crop_size = crop_size
 
     def register_schedule(self, given_betas=None, beta_schedule="linear", timesteps=1000,
                           linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3):
@@ -704,8 +705,11 @@ class LatentDiffusion(DDPM):
                     #here 
                     xc = batch[cond_key]
                     if self.cond_stage_key_2:
+                        cond_2 = batch[self.cond_stage_key_2]
+                        if type(cond_2) != list:
+                            cond_2 = cond_2.to(self.device)
                         xc = {cond_key: xc,
-                              self.cond_stage_key_2: batch[self.cond_stage_key_2].to(self.device)
+                              self.cond_stage_key_2: cond_2
                         }
                     # get styles
                 elif cond_key == 'class_label':
@@ -925,8 +929,13 @@ class LatentDiffusion(DDPM):
             return self.first_stage_model.encode(x)
 
     def shared_step(self, batch, **kwargs):
+        
         x, c, w = self.get_input(batch, self.first_stage_key, return_loss_w=True)
         loss = self(x, c, loss_w=w)
+        '''
+        x, c = self.get_input(batch, self.first_stage_key, return_loss_w=False)
+        loss = self(x, c) 
+        '''       
         return loss
 
     def forward(self, x, c, *args, **kwargs):
@@ -1321,7 +1330,7 @@ class LatentDiffusion(DDPM):
         denorm = T.Compose([ T.Normalize(mean = [ 0., 0., 0. ],  std = [ 1/0.226862954, 1/0.26130258, 1/0.27577711 ]),
                              T.Normalize(mean = [ -0.48145466, -0.4578275, -0.40821073], std = [ 1., 1., 1. ]),      ])
 
-        crop = T.CenterCrop((256, 176))
+        crop = T.CenterCrop(self.crop_size)
 
         log_root = Path(self.logger.save_dir)/'results/samples'
         concat_root = Path(self.logger.save_dir)/'results/concats'
@@ -1384,7 +1393,7 @@ class LatentDiffusion(DDPM):
                                            bs=N)
         N = min(x.shape[0], N)
         n_row = min(x.shape[0], n_row)
-        log["inputs"] = x
+        #log["inputs"] = x
         log["reconstruction"] = xrec
         if self.model.conditioning_key is not None:
             if hasattr(self.cond_stage_model, "decode"):
