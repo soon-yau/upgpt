@@ -99,7 +99,7 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
     #loss_fn_alex = lpips.LPIPS(net='alex').to(device)
     loss_fn_vgg = lpips.LPIPS(net='vgg').to(device)
 
-    ret = os.popen(f"python -m pytorch_fid {gt_dir} {sample_dir}")
+    ret = os.popen(f"python -m pytorch_fid {gt_dir} {sample_dir}  --device {device} --batch-size {batch_size}")
     loader = iter(DataLoader(Loader(gt_dir, sample_dir),
                         batch_size=batch_size, shuffle=False))
 

@@ -1326,7 +1326,7 @@ class LatentDiffusion(DDPM):
 
     @torch.no_grad()
     def test_step(self, batch, batch_idx):
-        f_ext = 'png' 
+        f_ext = 'jpg' 
         denorm = T.Compose([ T.Normalize(mean = [ 0., 0., 0. ],  std = [ 1/0.226862954, 1/0.26130258, 1/0.27577711 ]),
                              T.Normalize(mean = [ -0.48145466, -0.4578275, -0.40821073], std = [ 1., 1., 1. ]),      ])
 
@@ -1345,7 +1345,7 @@ class LatentDiffusion(DDPM):
             os.makedirs(str(root_name), exist_ok=True)
 
                     
-        log = self.log_images(batch, N=100, ddim_steps=200, 
+        log = self.log_images(batch, N=len(batch), use_ema_scope=True, 
                             unconditional_guidance_scale=3.0,
                             unconditional_guidance_label= [""])
 
@@ -1365,7 +1365,7 @@ class LatentDiffusion(DDPM):
             T.ToPILImage()(target_image).save(gt_root/f'{fname}.{f_ext}')
             T.ToPILImage()(recon_image).save(recon_root/f'{fname}.{f_ext}')
             T.ToPILImage()(src_image).save(src_root/f'{fname}.{f_ext}')
-            T.ToPILImage()(smpl_image).save(smpl_root/f'{new_fname}.{f_ext}')
+            T.ToPILImage()(smpl_image).save(smpl_root/f'{fname}.{f_ext}')
         
 
         for fname, style_batch in zip(batch['fname'], batch['styles']):
