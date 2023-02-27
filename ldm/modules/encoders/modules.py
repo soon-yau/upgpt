@@ -179,6 +179,7 @@ class FrozenCLIPTextEmbedder(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
+    @torch.no_grad()
     def forward(self, texts):
         zs = []
         for text in texts:
@@ -224,7 +225,8 @@ class FrozenClipImageEmbedder(nn.Module):
         # renormalize according to clip
         x = kornia.enhance.normalize(x, self.mean, self.std)
         return x
-
+    
+    @torch.no_grad()
     def forward(self, x):
         # x is assumed to be in range [-1,1]
         return self.model.encode_image(self.preprocess(x))
@@ -246,6 +248,7 @@ class FrozenClipImageEmbedder2(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
+    @torch.no_grad()
     def forward(self, x):
         b, n, c, h, w = x.shape
         batch = rearrange(x, 'b n c h w -> (b n) c h w ')
