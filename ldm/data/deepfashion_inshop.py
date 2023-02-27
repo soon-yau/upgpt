@@ -53,6 +53,14 @@ def get_name(src, dst):
     dst = convert_fname(dst)
     return src + '___' + dst
 
+def list_subdirectories(path):
+    subdirectories = []
+    for dirpath, dirnames, filenames in os.walk(path):
+        if not dirnames:
+            subdirectories.append(dirpath)
+    return subdirectories
+        
+
 class DeepFashionPair(Loader):
     
     def __init__(self, 
@@ -70,6 +78,7 @@ class DeepFashionPair(Loader):
                 loss_weight=None,
                 image_only=False,
                 dropout=None,
+                random_style=False,
                 **kwargs):
         super().__init__(folder, **kwargs)
         assert input_mask_type in ['mask', 'smpl']
@@ -86,6 +95,7 @@ class DeepFashionPair(Loader):
         self.vae_z_size = tuple([x//f for x in image_size])
         self.loss_weight = loss_weight
         self.dropout = dropout
+        self.random_style = random_style
         dfs = [pd.read_csv(f) for f in pair_file]
         self.df = pd.concat(dfs, ignore_index=True)
         if df_filter:
@@ -141,7 +151,7 @@ class DeepFashionPair(Loader):
     def __len__(self):
         return len(self.df)
 
-    
+
     def __getitem__(self, index):
         try:
             
@@ -175,10 +185,13 @@ class DeepFashionPair(Loader):
                 if random.uniform(0,1) < self.dropout:
                     drop_style = True
 
+            full_styles_path = self.style_root/source['styles']
+            if self.random_style:
+                full_styles_path = Path(random.choice(list_subdirectories(full_styles_path.parent.parent.parent)))
+
             style_images = []
             for style_name in self.style_names:
-                f_path = self.style_root/styles_path/f'{style_name}.jpg'
-                
+                f_path = full_styles_path/f'{style_name}.jpg'
                 if f_path.exists() and not drop_style:
                     style_image = self.clip_transform((Image.open(f_path)))
                 else:
@@ -248,10 +261,9 @@ class DeepFashionPair(Loader):
 
 class DeepFashionSample(DeepFashionPair):
     
-    def __init__(self, 
-                **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
+        
     def __len__(self):
         return len(self.df)
     
@@ -264,12 +276,13 @@ class DeepFashionSample(DeepFashionPair):
 
         #styles_dict = self.segmenter.forward(source_image, segm)
         #styles = torch.stack(list(styles_dict.values()))            
-        styles_path = source['styles']
+        full_styles_path = self.style_root/source['styles']
+        if self.random_style:
+            full_styles_path = Path(random.choice(list_subdirectories(full_styles_path.parent.parent.parent)))
 
-        
         style_images = []
         for style_name in self.style_names:
-            f_path = self.style_root/styles_path/f'{style_name}.jpg'
+            f_path = full_styles_path/f'{style_name}.jpg'
 
             if f_path.exists():
                 style_image = self.clip_transform((Image.open(f_path)))
