@@ -81,12 +81,12 @@ class DeepFashionPair(Loader):
                 random_style=False,
                 **kwargs):
         super().__init__(folder, **kwargs)
-        assert input_mask_type in ['mask', 'smpl']
+        assert input_mask_type in ['mask', 'smpl', 'bbox']
         self.image_only = image_only
         self.input_mask_type = input_mask_type
         self.root = Path(folder)
         self.image_root = self.root/image_dir
-        self.pose_root = self.root/'smpl_256' if self.input_mask_type=='mask' else self.root/'smpl'
+        self.pose_root = self.root/'smpl_256' if self.input_mask_type in ['mask','bbox'] else self.root/'smpl'
         self.style_root = self.root/'styles'
         self.segm_root = self.root/'lip_segm_256'
         self.texts = json.load(open(self.root/'captions.json'))
@@ -128,7 +128,7 @@ class DeepFashionPair(Loader):
             T.ToTensor(),
         ])    
         
-        if self.input_mask_type=='mask':
+        if self.input_mask_type in ['mask', 'bbox'] :
             self.mask_transform = T.Compose([
                 T.Resize(size=self.vae_z_size, interpolation=T.InterpolationMode.NEAREST),
                 T.ToTensor(),
@@ -151,7 +151,15 @@ class DeepFashionPair(Loader):
     def __len__(self):
         return len(self.df)
 
-
+    def get_bbox(self, mask):
+        x = np.nonzero(np.mean(mask,1))[0]
+        xmin, xmax = x[0], x[-1]
+        y = np.nonzero(np.mean(mask,0))[0]
+        ymin, ymax = y[0], y[-1]
+        bbox = np.zeros_like(mask, np.uint8)
+        bbox[xmin:xmax+1, ymin:ymax+1] = 1
+        return bbox
+    
     def __getitem__(self, index):
         try:
             
@@ -217,6 +225,10 @@ class DeepFashionPair(Loader):
                 mask_file = pose_path + '_mask.png'
                 mask_image = Image.open(mask_file)
                 person_mask = self.mask_transform(mask_image)
+            elif self.input_mask_type=='bbox':
+                mask_file = pose_path + '_mask.png'
+                mask_image = self.get_bbox(np.array(Image.open(mask_file)))
+                person_mask = self.mask_transform(Image.fromarray(mask_image))
             else:
                 person_mask = self.mask_transform(smpl_image)
           

@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 2.e-06
+  base_learning_rate: 1.e-06
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
@@ -95,6 +95,7 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
+    shuffle_val_dataloader: True
     batch_size: 12
     num_workers: 12
     #num_val_workers: 0 # Avoid a weird val dataloader issue
@@ -103,9 +104,9 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-         #- pairs-train-all.csv
+         - pairs-train-all.csv
          - solo-train-all.csv
-        input_mask_type: smpl
+        input_mask_type: bbox
         image_size:
         - 256
         - 192
@@ -114,19 +115,19 @@ data:
         data_file: deepfashion_map.csv
         #df_filter: segm
         loss_weight:
-          background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
+          #background: 0.5
+          #left-arm: 2.0
+          #right-arm: 2.0 
+          face: 5.0
     
     validation:          
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-          #- pairs-test-all.csv
-          - solo-test-all.csv
-        input_mask_type: smpl
+          - pairs-test-all.csv
+          #- solo-test-all.csv
+        input_mask_type: bbox
         image_size:
         - 256
         - 192
@@ -135,9 +136,9 @@ data:
         data_file: deepfashion_map.csv
         #df_filter: segm
         loss_weight:
-          background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
+          #background: 0.5
+          #left-arm: 2.0
+          #right-arm: 2.0 
           face: 8.0
 
     test:
@@ -145,9 +146,9 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-          #- pairs-test-all.csv
-          - solo-test-all.csv
-        input_mask_type: smpl
+          - pairs-test-all.csv
+          #- solo-test-all.csv
+        input_mask_type: bbox
         image_size:
         - 256
         - 192
@@ -156,7 +157,7 @@ data:
         data_file: deepfashion_map.csv
         #df_filter: segm
         loss_weight:
-          background: 0.5
+          #background: 0.5
           left-arm: 2.0
           right-arm: 2.0 
           face: 8.0
@@ -196,12 +197,12 @@ lightning:
     #   params:
     #     monitor: val/loss_simple_ema
     #     mode: min
-    #     patience: 5
+    #     patience: 4
 
   trainer:
     benchmark: True
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
     check_val_every_n_epoch: 2
-    max_epochs: 100
+    max_epochs: 50
     #max_steps: 40000
