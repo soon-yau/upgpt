@@ -228,7 +228,7 @@ class DeepFashionPair(Loader):
             elif self.input_mask_type=='bbox':
                 mask_file = pose_path + '_mask.png'
                 mask_image = self.get_bbox(np.array(Image.open(mask_file)))
-                person_mask = self.mask_transform(Image.fromarray(mask_image))
+                person_mask = self.mask_transform(Image.fromarray(mask_image)*255)
             else:
                 person_mask = self.mask_transform(smpl_image)
           
@@ -331,6 +331,10 @@ class DeepFashionSample(DeepFashionPair):
             mask_file = pose_path + '_mask.png'
             mask_image = Image.open(mask_file)
             person_mask = self.mask_transform(mask_image)
+        elif self.input_mask_type=='bbox':
+            mask_file = pose_path + '_mask.png'
+            mask_image = self.get_bbox(np.array(Image.open(mask_file)))
+            person_mask = self.mask_transform(Image.fromarray(mask_image)*255)
         else:
             person_mask = self.mask_transform(smpl_image)
 
