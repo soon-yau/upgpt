@@ -79,6 +79,7 @@ class DeepFashionPair(Loader):
                 image_only=False,
                 dropout=None,
                 random_style=False,
+                men_factor=None,
                 **kwargs):
         super().__init__(folder, **kwargs)
         assert input_mask_type in ['mask', 'smpl', 'bbox']
@@ -104,7 +105,11 @@ class DeepFashionPair(Loader):
         if max_size != 0:
             _, self.df = train_test_split(self.df, test_size=max_size, random_state=test_split_seed)
         
-        
+        if men_factor:
+            self.df['gender'] = self.df['from'].map(lambda x: x.split('/')[0])
+            men_df = pd.concat([self.df[self.df['gender']=='MEN']]*men_factor)
+            self.df = pd.concat([self.df, men_df]).reset_index()
+                    
         ''' pad and resize '''
         #self.image_size = image_size
         #transform_list = [T.Resize(image_size)] if image_size else []
@@ -228,7 +233,7 @@ class DeepFashionPair(Loader):
             elif self.input_mask_type=='bbox':
                 mask_file = pose_path + '_mask.png'
                 mask_image = self.get_bbox(np.array(Image.open(mask_file)))
-                person_mask = self.mask_transform(Image.fromarray(mask_image)*255)
+                person_mask = self.mask_transform(Image.fromarray(mask_image*255))
             else:
                 person_mask = self.mask_transform(smpl_image)
           
@@ -334,7 +339,7 @@ class DeepFashionSample(DeepFashionPair):
         elif self.input_mask_type=='bbox':
             mask_file = pose_path + '_mask.png'
             mask_image = self.get_bbox(np.array(Image.open(mask_file)))
-            person_mask = self.mask_transform(Image.fromarray(mask_image)*255)
+            person_mask = self.mask_transform(Image.fromarray(mask_image*255))
         else:
             person_mask = self.mask_transform(smpl_image)
 

@@ -1,0 +1,209 @@
+model:
+  base_learning_rate: 2.e-06
+  target: ldm.models.diffusion.ddpm.LatentDiffusion
+  params:
+    linear_start: 0.00085
+    linear_end: 0.0120
+    num_timesteps_cond: 1
+    log_every_t: 1000
+    timesteps: 1000
+    first_stage_key: "image"
+    cond_stage_key: "txt"
+    concat_key: "person_mask"
+    image_size: [32, 24] #[128, 96]
+    crop_size: [256, 176]
+    channels: 4
+    cond_stage_trainable: false   # Note: different from the one we trained before
+    conditioning_key: hybrid #crossattn
+    scale_factor: 0.18215
+
+    
+    scheduler_config: # 10000 warmup steps
+      # target: torch.optim.lr_scheduler.ReduceLROnPlateau
+      # monitor: val/loss_simple_ema
+      # params:
+      #   mode: min
+      #   factor: 0.5
+      #   patience: 3
+      #   cooldown: 0
+      #   min_lr: 0.00001
+      #   threshold: 0.001
+      #   verbose: True    
+      target: ldm.lr_scheduler.LambdaLinearScheduler
+      params:
+        warm_up_steps: [ 1] # NOTE for resuming. use 10000 if starting from scratch
+        cycle_lengths: [ 10000000000000 ] # incredibly large number to prevent corner cases
+        f_start: [ 1.e-6 ]
+        f_max: [ 1. ]
+        f_min: [ 1. ]
+
+    unet_config:
+      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      params:
+        image_size: 32 # unused
+        in_channels: 5
+        out_channels: 4
+        model_channels: 224 #224 #320
+        attention_resolutions: [ 4, 2, 1 ]
+        num_res_blocks: 2
+        channel_mult: [ 1, 2, 4, 4 ]
+        num_heads: 8
+        use_spatial_transformer: True
+        transformer_depth: 1
+        context_dim: 768
+        use_checkpoint: True
+        legacy: False
+
+    first_stage_config:
+      target: ldm.models.autoencoder.AutoencoderKL
+      params:
+        ckpt_path: models/first_stage_models/kl-f8-deepfashion/deepfashion_256_v2.ckpt
+        embed_dim: 4
+        monitor: val/rec_loss
+        ddconfig:
+          double_z: true
+          z_channels: 4
+          resolution: 256
+          in_channels: 3
+          out_ch: 3
+          ch: 128
+          ch_mult:
+          - 1
+          - 2
+          - 4
+          - 4
+          num_res_blocks: 2
+          attn_resolutions: []
+          dropout: 0.0
+        lossconfig:
+          target: torch.nn.Identity
+
+    cond_stage_config:
+      target: ldm.modules.encoders.modules.FrozenCLIPEmbedder
+
+    extra_cond_stages:
+      style_cond:
+        target: ldm.modules.encoders.modules.FrozenClipImageEmbedder2
+        cond_stage_key: "styles"
+      pose_cond:
+        target: ldm.modules.poses.poses.LinearProject
+        cond_stage_key: "smpl"
+        params:
+          input_dim: 85
+          output_dim: 768
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    shuffle_val_dataloader: True
+    batch_size: 12
+    num_workers: 12
+    #num_val_workers: 0 # Avoid a weird val dataloader issue
+    train:
+      target: ldm.data.deepfashion_inshop.DeepFashionPair
+      params:
+        folder: "/home/soon/datasets/deepfashion_inshop"
+        pair_file: 
+         - pairs-train-all.csv
+         - solo-train-all.csv
+        input_mask_type: bbox
+        image_size:
+        - 256
+        - 192
+        f: 8
+        image_dir: img_256
+        data_file: deepfashion_map.csv
+        men_factor: 4 # increase men samples by 4 times
+        #df_filter: segm
+        loss_weight:
+          background: 0.5
+          left-arm: 2.0
+          right-arm: 2.0 
+          face: 5.0
+    
+    validation:          
+      target: ldm.data.deepfashion_inshop.DeepFashionPair
+      params:
+        folder: "/home/soon/datasets/deepfashion_inshop"
+        pair_file: 
+          - pairs-test-all.csv
+          #- solo-test-all.csv
+        input_mask_type: bbox
+        image_size:
+        - 256
+        - 192
+        f: 8
+        image_dir: img_256
+        data_file: deepfashion_map.csv
+        #df_filter: segm
+        loss_weight:
+          #background: 0.5
+          #left-arm: 2.0
+          #right-arm: 2.0 
+          face: 8.0
+
+    test:
+      target: ldm.data.deepfashion_inshop.DeepFashionPair
+      params:
+        folder: "/home/soon/datasets/deepfashion_inshop"
+        pair_file: 
+          - pairs-test-all.csv
+          #- solo-test-all.csv
+        input_mask_type: bbox
+        image_size:
+        - 256
+        - 192
+        f: 8
+        image_dir: img_256
+        data_file: deepfashion_map.csv
+        #df_filter: segm
+        loss_weight:
+          #background: 0.5
+          left-arm: 2.0
+          right-arm: 2.0 
+          face: 8.0
+lightning:
+  find_unused_parameters: False
+
+  modelcheckpoint:
+    params:
+      save_last: True
+      every_n_epochs: 1
+      save_top_k: 1
+      monitor: val/loss_simple_ema
+
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 1000
+        max_images: 4
+        increase_log_steps: False
+        log_first_step: True
+        #log_all_val: False #True
+        log_cond_keys: 
+         - src_image
+         - smpl_image
+        log_images_kwargs:
+          use_ema_scope: True
+          inpaint: False
+          plot_progressive_rows: False
+          plot_diffusion_rows: False
+          N: 4
+          unconditional_guidance_scale: 3.0
+          unconditional_guidance_label: [""]
+  
+    early_stopping:
+      target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
+      params:
+        monitor: val/loss_simple_ema
+        mode: min
+        patience: 3
+
+  trainer:
+    benchmark: True
+    num_sanity_val_steps: 1
+    accumulate_grad_batches: 1
+    check_val_every_n_epoch: 1
+    max_epochs: 12
+    #max_steps: 40000
