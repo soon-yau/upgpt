@@ -13,5 +13,4 @@ class DummyModel(nn.Module):
         super().__init__()
 
     def forward(self, x):
-        print('dummy', x.shape)
         return x
