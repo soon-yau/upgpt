@@ -250,14 +250,6 @@ class DeepFashionPair(Loader):
             segm_path = str(self.segm_root/target.name).replace('.jpg','.png')            
             segm = np.array(Image.open(segm_path))
 
-            #person_mask = self.segmenter.get_mask(segm, {'background':0.0}, default_value=1.0)
-            '''
-            loss_weight = self.segmenter.get_mask(segm, 
-                                        {'background':0.5, 
-                                        'left-arm':2.0, 
-                                        'right-arm':2.0, 
-                                        'face':5.0})
-            '''
             loss_weight = self.segmenter.get_mask(segm, self.loss_weight)
             loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
 

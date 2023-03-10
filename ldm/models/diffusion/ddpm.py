@@ -1345,9 +1345,9 @@ class LatentDiffusion(DDPM):
             os.makedirs(str(root_name), exist_ok=True)
 
                     
-        log = self.log_images(batch, N=len(batch), use_ema_scope=True, 
+        log = self.log_images(batch, N=len(batch), use_ema=True, 
                             unconditional_guidance_scale=3.0,
-                            unconditional_guidance_label= [""])
+                            unconditional_guidance_label= ["txt"])
 
         for k in ['samples', 'reconstruction']:
             log[k] = crop(log[k].detach())

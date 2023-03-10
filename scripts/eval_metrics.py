@@ -135,14 +135,14 @@ def eval(gt_dir, sample_dir, batch_size, gpu=0):
 
     text_file.close()
         
-def resize_image(root):
+def resize_image(root, size):
+    
     image_files = glob(str(Path(root)/'**/*.jpg'), recursive=True)
 
     for image_file in image_files:
         image = Image.open(image_file)
-        if image.size == (192,256):
-            image = np.array(Image.open(image_file))[:,8:-8,:]
-            Image.fromarray(image).save(image_file)
+        if image.size != tuple(size[::-1]):
+            T.CenterCrop(size)(Image.open(image_file)).save(image_file)
         else:
             break
 
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     gt_root = args.gt_dir if args.gt_dir else str(root/'gt')
     sample_root = args.sample_dir if args.sample_dir else str(root/'samples')
     
-    #resize_image(gt_root)
-    #resize_image(sample_root)
+    #resize_image(sample_root, (512,256))
+    #resize_image(gt_root, (512,256))
 
     eval(gt_root, sample_root, args.batch_size, args.gpu)

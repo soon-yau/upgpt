@@ -373,8 +373,7 @@ class ImageLogger(Callback):
         
         # save local
         root = os.path.join(pl_module.logger.save_dir, "images", split)
-        filename = "{}_gs-{:06}_e-{:06}_b-{:06}.png".format(
-            'styles',
+        filename = "samples-{:06}_e-{:06}_b-{:06}.png".format(
             pl_module.global_step,
             pl_module.current_epoch,
             batch_idx)
