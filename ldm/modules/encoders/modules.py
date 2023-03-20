@@ -179,6 +179,7 @@ class FrozenCLIPTextEmbedder(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
+    @torch.no_grad()
     def forward(self, texts):
         zs = []
         for text in texts:
@@ -224,7 +225,8 @@ class FrozenClipImageEmbedder(nn.Module):
         # renormalize according to clip
         x = kornia.enhance.normalize(x, self.mean, self.std)
         return x
-
+    
+    @torch.no_grad()
     def forward(self, x):
         # x is assumed to be in range [-1,1]
         return self.model.encode_image(self.preprocess(x))
@@ -246,6 +248,7 @@ class FrozenClipImageEmbedder2(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
+    @torch.no_grad()
     def forward(self, x):
         b, n, c, h, w = x.shape
         batch = rearrange(x, 'b n c h w -> (b n) c h w ')
@@ -257,13 +260,15 @@ class CLIPTextImageCrossAtten(nn.Module):
     
     def __init__(self, version='laion/CLIP-ViT-L-14-laion2B-s32B-b82K',
                 max_length = 77,
-                device='cuda' if torch.cuda.is_available() else 'cpu'):
+                device='cuda' if torch.cuda.is_available() else 'cpu',
+                style_encode='image'):
 
         super().__init__()
         self.model = CLIPModel.from_pretrained(version)
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
         self.max_length = max_length
         self.device = device
+        self.style_encode = style_encode
         self.freeze()
 
         self.cross_att = CrossAttention(
@@ -300,13 +305,15 @@ class CLIPTextImageCrossAtten(nn.Module):
         return clip_features
     
     def forward(self, txt, styles, use_text_style=False):
-        if use_text_style:
-            styles_emb = self.get_text_outputs(styles)
-        else:
+        if self.style_encode == 'image':
             styles_emb = self.forward_image(styles)
+        elif self.style_encode == 'text':
+            styles_emb = self.get_text_outputs(styles)           
             
-        content_emb = self.get_text_emb(txt)
-        x = self.cross_att(content_emb, styles_emb)
+        x = self.get_text_emb(txt)
+        
+        if self.style_encode in ['image', 'text']:            
+            x = self.cross_att(x, styles_emb)
         
         return x
     

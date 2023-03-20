@@ -99,6 +99,7 @@ data:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
+        input_mask_type: smpl
         image_dir: img_256
         data_file: train.csv
         pair_file: 
@@ -111,6 +112,7 @@ data:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
+        input_mask_type: smpl
         image_dir: img_256
         data_file: test.csv
         pair_file: 
@@ -121,6 +123,7 @@ data:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
+        input_mask_type: smpl
         image_dir: img_256
         data_file: test.csv
         pair_file: 
@@ -141,7 +144,7 @@ lightning:
     image_logger:
       target: main.ImageLogger
       params:
-        batch_frequency: 1000
+        batch_frequency: 750
         max_images: 4
         increase_log_steps: False
         log_first_step: True
@@ -169,5 +172,5 @@ lightning:
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
     check_val_every_n_epoch: 2
-    max_epochs: 25
+    max_epochs: 50
     #max_steps: 40000

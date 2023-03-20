@@ -7,3 +7,10 @@ class LinearProject(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+class DummyModel(nn.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    def forward(self, x):
+        return x
