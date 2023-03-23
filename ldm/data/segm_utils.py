@@ -217,13 +217,7 @@ class DeepfashionMMSegmenter(Segmenter):
         segm_groups = {
             'face':['eyeglass','face'],
             'background':['background'],
-            'hair': ['hair'],
-            'headwear': ['hat'],
-            'top':[ 'top', 'dress','jumpsuits','scarf'],
-            'bottom':['skirt','dress','pants','jumpsuits'],
-            'shoes':['left-shoe','right-shoe','socks'],
-            'outer': ['coat'],
-            'arms':['left-arm', 'right-arm']
+            'skin': ['skin']
             }
 
         image_transform = T.Compose([

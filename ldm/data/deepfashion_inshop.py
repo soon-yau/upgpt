@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image
 import pandas as pd
 from random import choice
-from ldm.data.segm_utils import LipSegmenter
+from ldm.data.segm_utils import DeepfashionMMSegmenter
 from abc import abstractmethod
 import pickle
 from sklearn.model_selection import train_test_split
@@ -89,7 +89,7 @@ class DeepFashionPair(Loader):
         self.image_root = self.root/image_dir
         self.pose_root = self.root/'smpl_256' if self.input_mask_type in ['mask','bbox'] else self.root/'smpl'
         self.style_root = self.root/'styles'
-        self.segm_root = self.root/'lip_segm_256'
+        self.segm_root = self.root/'segm_256'
         self.texts = json.load(open(self.root/'captions.json'))
         self.map_df = pd.read_csv(data_file)
         self.map_df.set_index('image', inplace=True)
@@ -150,7 +150,7 @@ class DeepFashionPair(Loader):
             #T.Resize(size=256),
             T.CenterCrop(size=(256, 192))])
         
-        self.segmenter = LipSegmenter(self.clip_transform)
+        self.segmenter = DeepfashionMMSegmenter()
         self.style_names = style_names
 
     def __len__(self):
@@ -247,24 +247,25 @@ class DeepFashionPair(Loader):
                 smpl_pose = np.concatenate((pred_pose, pred_betas, pred_camera), axis=1)
                 smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
-            segm_path = str(self.segm_root/target.name).replace('.jpg','.png')            
-            segm = np.array(Image.open(segm_path))
-
-            loss_weight = self.segmenter.get_mask(segm, self.loss_weight)
-            loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
-
             data.update({'smpl':smpl_pose, 
                          'smpl_image':smpl_image, 
-                         'person_mask':person_mask,
-                         'loss_w':loss_weight
+                         'person_mask':person_mask
                          })
 
+            if self.loss_weight:
+                segm_path = str(self.segm_root/target.name).replace('.jpg','_segm.png')            
+                segm = np.array(Image.open(segm_path))
+
+                loss_weight = self.segmenter.get_mask(segm, self.loss_weight)
+                loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
+
+                data.update({'loss_w':loss_weight})
 
             return data
 
         except Exception as e:            
-            #print(f"Skipping index {index}", e)
-            #sys.exit()
+            print(f"Skipping index {index}", e)
+            sys.exit()
             return self.skip_sample(index)
 
 
@@ -346,22 +347,9 @@ class DeepFashionSample(DeepFashionPair):
             smpl_pose = T.ToTensor()(smpl_pose).view((1,-1))
 
 
-        segm_path = str(self.segm_root/target.name).replace('.jpg','.png')            
-        segm = np.array(Image.open(segm_path))
-
-        #person_mask = self.segmenter.get_mask(segm, {'background':0.0}, default_value=1.0)
-        loss_weight = self.segmenter.get_mask(segm, 
-                                    {'background':0.5, 
-                                    'left-arm':2.0, 
-                                    'right-arm':2.0, 
-                                    'face':5.0})
-        loss_weight = self.loss_w_transform(Image.fromarray(loss_weight))
-
-
         data.update({'smpl':smpl_pose, 
                      'smpl_image':smpl_image, 
-                     'person_mask':person_mask,
-                     'loss_w':loss_weight})
+                     'person_mask':person_mask})
 
 
         return data
