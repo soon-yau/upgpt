@@ -104,14 +104,14 @@ data:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
          #- pairs-train-all.csv
-         - solo-train-all.csv
+         - data/deepfashion/solo-train-all.csv
         input_mask_type: smpl
         image_size:
         - 512
         - 384
         f: 8
         image_dir: img_512
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         df_filter: segm
         dropout: 0.1
         loss_weight:
@@ -126,14 +126,14 @@ data:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
           #- pairs-test-all.csv
-          - solo-test-all.csv
+          - data/deepfashion/solo-test-all.csv
         input_mask_type: smpl
         image_size:
         - 512
         - 384
         f: 8
         image_dir: img_512
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         df_filter: segm
         loss_weight:
           background: 0.5
@@ -147,14 +147,14 @@ data:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
           #- pairs-test-all.csv
-          - solo-test-all.csv
+          - data/deepfashion/solo-test-all.csv
         input_mask_type: smpl
         image_size:
         - 512
         - 384
         f: 8
         image_dir: img_512
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         df_filter: segm
         loss_weight:
           background: 0.5

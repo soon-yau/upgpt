@@ -104,15 +104,15 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-         - pairs-train-all.csv
-         - solo-train-all.csv
+         - data/deepfashion/pairs-train-all.csv
+         - data/deepfashion/solo-train-all.csv
         input_mask_type: bbox
         image_size:
         - 256
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         men_factor: 4 # increase men samples by 4 times
         #df_filter: segm
         loss_weight:
@@ -134,7 +134,7 @@ data:
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         #df_filter: segm
         loss_weight:
           #background: 0.5
@@ -147,7 +147,7 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-          - pairs-test-all.csv
+          - data/deepfashion/pairs-test-all.csv
           #- solo-test-all.csv
         input_mask_type: bbox
         image_size:
@@ -155,7 +155,7 @@ data:
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         #df_filter: segm
         loss_weight:
           #background: 0.5
