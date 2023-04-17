@@ -1,5 +1,7 @@
 # UPGPT
 
+### Contribution
+Large part of code was adapted from https://github.com/Stability-AI/stablediffusion/. 
 
 
 ## Requirements
