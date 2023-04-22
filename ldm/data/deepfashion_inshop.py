@@ -71,6 +71,7 @@ class DeepFashionPair(Loader):
                 df_filter=None,
                 image_size=[256, 192], 
                 f=8,
+                resize_size=None,
                 pad=None,
                 max_size=0, 
                 test_split_seed=None,
@@ -111,13 +112,17 @@ class DeepFashionPair(Loader):
             self.df = pd.concat([self.df, men_df]).reset_index()
                     
         ''' pad and resize '''
-        #self.image_size = image_size
-        #transform_list = [T.Resize(image_size)] if image_size else []
+        pre_transform = []
+        if resize_size:
+            pre_transform.append(T.Resize(resize_size))
+        if pad:
+            pre_transform.append(T.Pad(tuple(pad)))
+        self.resize_pad_image = T.Compose(pre_transform)
+
         self.image_transform = T.Compose([
             T.ToTensor(),
             T.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
 
-        self.pad = None if pad is None else tuple(pad)
         ''' '''
 
         self.clip_norm = T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), 
@@ -174,7 +179,7 @@ class DeepFashionPair(Loader):
             target = self.map_df.loc[row['to']]           
 
             target_path = str(self.image_root/target.name)
-            target_image = self.image_transform(Image.open(target_path))
+            target_image = self.image_transform(self.resize_pad_image(Image.open(target_path)))
             text = self.texts.get(target.text, '')
             
             data.update({"image": target_image, "txt": text})
@@ -213,13 +218,9 @@ class DeepFashionPair(Loader):
             style_images = torch.stack(style_images)  
             
             data.update({"fname": fname, 
-                    "src_image": self.image_transform(source_image),
+                    "src_image": self.image_transform(self.resize_pad_image(source_image)),
                     "styles": style_images})
 
-
-            # image
-            #if self.pad:
-            #    image = T.Pad(self.pad, padding_mode='edge')(image)
 
             # SMPL            
             pose_path = str(self.pose_root/target.pose)
@@ -264,8 +265,8 @@ class DeepFashionPair(Loader):
             return data
 
         except Exception as e:            
-            print(f"Skipping index {index}", e)
-            sys.exit()
+            #print(f"Skipping index {index}", e)
+            #sys.exit()
             return self.skip_sample(index)
 
 
@@ -303,7 +304,7 @@ class DeepFashionSample(DeepFashionPair):
 
 
         data = {#"fname": fname, 
-                "src_image": self.image_transform(source_image),
+                "src_image": self.image_transform(self.resize_pad_image(source_image)),
                 "styles": style_images}
 
         # target - get text, person_mask, pose, 
@@ -312,7 +313,7 @@ class DeepFashionSample(DeepFashionPair):
         text = self.texts.get(target.text, '')
 
         target_path = str(self.image_root/target.name)
-        target_image = self.image_transform(Image.open(target_path))
+        target_image = self.image_transform(self.resize_pad_image(Image.open(target_path)))
 
         data.update({"image": target_image, "txt": text,})
 
@@ -353,3 +354,121 @@ class DeepFashionSample(DeepFashionPair):
 
 
         return data
+
+
+class DeepFashionSuperRes(DeepFashionPair):
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.lr_root = self.root/'recon_256'
+        self.style_names = style_names
+        self.lr_transform = T.Compose([
+            T.Resize(size=self.vae_z_size, interpolation=T.InterpolationMode.BILINEAR),
+            T.ToTensor(),
+            T.Lambda(lambda x: x * 2. - 1.,)])
+
+    def __len__(self):
+        return len(self.df)
+    
+    def __getitem__(self, index):
+
+        try:            
+            row = self.df.iloc[index]
+            data = {}
+            # source - get fashion styles
+            source = self.map_df.loc[row['from']]
+            src_path = str(self.image_root/source.name)
+            source_image = Image.open(src_path)
+            lr_image =  Image.open(str(self.lr_root/source.name))
+            text = self.texts.get(source.text, '')
+            
+            full_styles_path = self.style_root/source['styles']
+
+            style_images = []
+            for style_name in self.style_names:
+                f_path = full_styles_path/f'{style_name}.jpg'
+
+                if f_path.exists():
+                    style_image = self.clip_transform((Image.open(f_path)))
+                else:
+                    style_image = self.clip_norm(torch.zeros(3, 224, 224))
+                style_images.append(style_image)
+            style_images = torch.stack(style_images)  
+
+            lr = self.lr_transform(lr_image)
+            lr_image = rearrange(lr, 'c h w -> h w c')
+            data = {"lr": lr,
+                    "lr_image": lr_image,
+                    "image": self.image_transform(self.resize_pad_image(source_image)),
+                    "styles": style_images,
+                    "txt": text}
+            return data
+
+        except Exception as e:            
+            #print(f"Skipping index {index}", e)
+            #sys.exit()
+            return self.skip_sample(index)
+        
+
+class DeepFashionSuperResSampling(DeepFashionPair):
+    
+    def __init__(self, **kwargs):
+        lr_dir = kwargs.pop('lr_dir')
+        super().__init__(**kwargs)
+        
+        self.lr_root = Path(lr_dir)
+        self.style_names = style_names
+        self.lr_transform = T.Compose([
+            T.Pad((8,0), padding_mode='edge'),
+            T.Resize(size=self.vae_z_size, interpolation=T.InterpolationMode.BILINEAR),
+            T.ToTensor(),
+            T.Lambda(lambda x: x * 2. - 1.,)])
+
+    def __len__(self):
+        return len(self.df)
+    
+    def __getitem__(self, index):
+
+        ext = '.jpg'
+        try:            
+            row = self.df.iloc[index]
+            data = {}
+            # source - get fashion styles
+            source = self.map_df.loc[row['from']]
+            src_path = str(self.image_root/source.name)
+            source_image = Image.open(src_path)
+
+            fname = get_name(row['from'], row['to'])
+            #print(str(self.lr_root/fname)+ext)
+            lr_image =  Image.open(str(self.lr_root/fname)+ext)
+            text = self.texts.get(source.text, '')
+            
+            full_styles_path = self.style_root/source['styles']
+
+            style_images = []
+            for style_name in self.style_names:
+                f_path = full_styles_path/f'{style_name}.jpg'
+
+                if f_path.exists():
+                    style_image = self.clip_transform((Image.open(f_path)))
+                else:
+                    style_image = self.clip_norm(torch.zeros(3, 224, 224))
+                style_images.append(style_image)
+            style_images = torch.stack(style_images)  
+
+            lr = self.lr_transform(lr_image)
+            lr_image = rearrange(lr, 'c h w -> h w c')
+            data = {"fname": fname,
+                    "lr": lr,
+                    "lr_image": lr_image,
+                    "image": self.image_transform(self.resize_pad_image(source_image)),
+                    "styles": style_images,
+                    "txt": text}
+            #print(index, row['from'], row['to'])
+            return data
+
+        except Exception as e:            
+            #print(f"Skipping index {index}", e)
+            # sys.exit()
+            return self.skip_sample(index)
+        
