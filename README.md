@@ -1,6 +1,7 @@
 # UPGPT
 This is the official Github repo for the paper "UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer"
 https://arxiv.org/abs/2304.08870
+![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
 BibTeX:
 ```
