@@ -16,31 +16,30 @@ Editing and Pose Transfer},
 }
 ```
 
-Demo Video:
 
-https://user-images.githubusercontent.com/19167278/233998033-7bfbeec5-e144-4928-b2ed-82f8b52c463c.mp4
-
+## Paper's Result
+The ground truth and generated images used in the paper can be downaloded from
+[the repo release.](https://github.com/soon-yau/upgpt/releases/tag/v1.0.0)
 
 ## Requirements
-A suitable [conda](https://conda.io/) environment named `ldm` can be created
+A suitable [conda](https://conda.io/) environment named `upgpt` can be created
 and activated with:
 
 ```
 conda env create -f environment.yaml
-conda activate ldm
+conda activate upgpt
 ```
 
-You can also update an existing [latent diffusion](https://github.com/CompVis/latent-diffusion) environment by running
+## App
+As the SMPL files are not optimised and their size are too big to be hosted online, so we will not be providing them for training nor inference. However, we provide a few samples that you can play with in the app.
 
-```
-conda install pytorch torchvision -c pytorch
-pip install transformers==4.19.2
-pip install -e .
-```
+Download files from [Google Drive](https://drive.google.com/drive/folders/1awDqmE1xkjdmxmsZpCCORCJLoKSdSteX?usp=share_link):
+- Unzip style.zip 
+- Unzip models pt_256.zip and upscale.zip into ./models/upgpt
+- Start the app by typing in terminal `streamlit run app.py`
 
+App Demo:
 
-
-
-
+https://user-images.githubusercontent.com/19167278/233998033-7bfbeec5-e144-4928-b2ed-82f8b52c463c.mp4
 
 
