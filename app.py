@@ -16,9 +16,10 @@ from einops import rearrange
 from omegaconf import OmegaConf
 from ldm.data.generate_utils import InferenceModel, draw_styles, convert_fname, interp_mask
 
-data_root = Path('/home/soon/datasets/deepfashion_inshop')
-image_root = data_root/'img_512'
-styles_root = data_root/'styles'
+#data_root = Path('/home/soon/datasets/deepfashion_inshop')
+#styles_root = data_root/'styles'
+
+styles_root = Path('styles')
 cache_root = Path('app_cache')
 local_style_root = cache_root/'styles'
 local_pose_root = cache_root/'pose'
@@ -53,8 +54,7 @@ def get_samples():
 map_df = pd.read_csv("data/deepfashion/deepfashion_map.csv")
 map_df.set_index('image', inplace=True)
 
-st.title('UPGPT - A ChatGPT-like Fashion Diffusion Model')
-st.write('Soon-Yau Cheong')
+st.title('UPGPT - create and edit fashion image with chat and visual hint')
 
 style_names = ['face', 'hair', 'headwear', 'background', 'top', 'outer', 'bottom', 'shoes', 'accesories']
 
@@ -95,19 +95,10 @@ def upgpt_model(config_file = 'models/upgpt/pt_256/config.yaml',
 
 model = upgpt_model()
 
-# upscale_model = upgpt_model('logs/2023-03-27T09-34-40_x4_upscaling/configs/2023-03-27T09-34-40-project.yaml',
-#                             'logs/2023-03-27T09-34-40_x4_upscaling/checkpoints/epoch=000002.ckpt', 
-#                             'cuda:0')
-# upscale_model = upgpt_model('logs/2023-04-03T08-57-24_upscale_4x_512/configs/2023-04-03T08-57-24-project.yaml',
-#                             'logs/2023-04-03T08-57-24_upscale_4x_512/checkpoints/epoch=000016.ckpt', 
-#                             'cuda:0')
-
-upscale_ckpt = 'logs/2023-04-08T03-23-53_upscale_4x_512/checkpoints/epoch=000000.ckpt'
-upscale_model = None
 disable_upscale = True
 if os.path.exists(upscale_ckpt):
-    upscale_model = upgpt_model('logs/2023-04-08T03-23-53_upscale_4x_512/configs/2023-04-08T03-23-53-project.yaml',
-                                upscale_ckpt, 
+    upscale_model = upgpt_model('models/upgpt/upscale/config.yaml',
+                                "models/upgpt/upscale/upgpt.upscale.v1.ckpt, 
                                 'cuda:0')
     disable_upscale = False
 def load_smpl(folder):
@@ -154,7 +145,7 @@ def get_styles(input_style_names=style_names):
     return style_images
 
 
-left_column, mid_column, right_column, sr_column = st.columns([1,1,1.5,1])
+left_column, mid_column, right_column, sr_column = st.columns([1,1,1,1])
 right_column.markdown("##### Generated Images")
 gen_image = right_column.empty()
 low_res_images = get_samples()
