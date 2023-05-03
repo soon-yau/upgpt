@@ -3,6 +3,11 @@ This is the official Github repo for the paper "UPGPT: Universal Diffusion Model
 https://arxiv.org/abs/2304.08870
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
+## Video Demo (HD) 
+
+[![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
+
+
 BibTeX:
 ```
 @misc{upgpt,
@@ -15,9 +20,6 @@ Editing and Pose Transfer},
       primaryClass={cs.CV}
 }
 ```
-## Video Demo (HD) 
-
-[![Video Demo (HD)](assets/video.jpg)]([https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE](https://youtu.be/2E8MSRlcN54))
 
 
 
@@ -42,8 +44,7 @@ Download files from [Google Drive](https://drive.google.com/drive/folders/1awDqm
 - Unzip models pt_256.zip and upscale.zip into ./models/upgpt
 - Start the app by typing in terminal `streamlit run app.py`
 
-App Demo:
 
-https://user-images.githubusercontent.com/19167278/233998033-7bfbeec5-e144-4928-b2ed-82f8b52c463c.mp4
+<!---  https://user-images.githubusercontent.com/19167278/233998033-7bfbeec5-e144-4928-b2ed-82f8b52c463c.mp4 --->
 
 
