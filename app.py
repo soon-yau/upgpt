@@ -16,8 +16,6 @@ from einops import rearrange
 from omegaconf import OmegaConf
 from ldm.data.generate_utils import InferenceModel, draw_styles, convert_fname, interp_mask
 
-#data_root = Path('/home/soon/datasets/deepfashion_inshop')
-#styles_root = data_root/'styles'
 
 styles_root = Path('styles')
 cache_root = Path('app_cache')
@@ -54,8 +52,7 @@ def get_samples():
 map_df = pd.read_csv("data/deepfashion/deepfashion_map.csv")
 map_df.set_index('image', inplace=True)
 
-st.title('UPGPT - create and edit fashion image with chat and visual hint')
-
+st.title('UPGPT - mix-and-match text and visual prompts for human image generation')
 style_names = ['face', 'hair', 'headwear', 'background', 'top', 'outer', 'bottom', 'shoes', 'accesories']
 
 
@@ -96,9 +93,10 @@ def upgpt_model(config_file = 'models/upgpt/pt_256/config.yaml',
 model = upgpt_model()
 
 disable_upscale = True
+upscale_ckpt = "models/upgpt/upscale/upgpt.upscale.v1.ckpt"
 if os.path.exists(upscale_ckpt):
     upscale_model = upgpt_model('models/upgpt/upscale/config.yaml',
-                                "models/upgpt/upscale/upgpt.upscale.v1.ckpt, 
+                                upscale_ckpt, 
                                 'cuda:0')
     disable_upscale = False
 def load_smpl(folder):
