@@ -15,6 +15,8 @@ Editing and Pose Transfer},
       primaryClass={cs.CV}
 }
 ```
+[![Video Demo (HD)](assets/video.jpg)]([https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE](https://youtu.be/2E8MSRlcN54))
+
 
 
 ## Paper's Result
