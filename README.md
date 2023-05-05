@@ -39,7 +39,7 @@ conda activate upgpt
 ## App
 As the SMPL files are not optimised and their size are too big to be hosted online, so we will not be providing them for training nor inference. However, we provide a few samples that you can play with in the app.
 
-Download files from [Google Drive](https://drive.google.com/drive/folders/1awDqmE1xkjdmxmsZpCCORCJLoKSdSteX?usp=share_link):
+Download files from [Google Drive](https://drive.google.com/drive/folders/1ifKoQEOir9NXmZGrPSIYpFT5L4pSHTBh?usp=share_link):
 - Unzip style.zip 
 - Unzip models pt_256.zip and upscale.zip into ./models/upgpt
 - Start the app by typing in terminal `streamlit run app.py`
