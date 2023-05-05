@@ -3,6 +3,8 @@ This is the official Github repo for the paper "UPGPT: Universal Diffusion Model
 https://arxiv.org/abs/2304.08870
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
+The code was adapted from https://github.com/Stability-AI/stablediffusion/.
+
 ## Video Demo (HD) 
 
 [![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
