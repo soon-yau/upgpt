@@ -104,15 +104,14 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-         - pairs-train-all.csv
-         - solo-train-all.csv
+         - data/deepfashion/mm-train-all.csv
         input_mask_type: bbox
         image_size:
         - 256
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         #df_filter: segm
         loss_weight:
           #background: 0.5
@@ -125,7 +124,7 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-          - pairs-test-all.csv
+          - data/deepfashion/mm-test-all.csv
           #- solo-test-all.csv
         input_mask_type: bbox
         image_size:
@@ -133,7 +132,7 @@ data:
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         #df_filter: segm
         loss_weight:
           #background: 0.5
@@ -146,7 +145,7 @@ data:
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
         pair_file: 
-          - pairs-test-all.csv
+          - data/deepfashion/mm-test-all.csv
           #- solo-test-all.csv
         input_mask_type: bbox
         image_size:
@@ -154,8 +153,7 @@ data:
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
-        #df_filter: segm
+        data_file: data/deepfashion/deepfashion_map.csv
         loss_weight:
           #background: 0.5
           left-arm: 2.0
@@ -192,17 +190,17 @@ lightning:
           unconditional_guidance_scale: 3.0
           unconditional_guidance_label: [""]
   
-    # early_stopping:
-    #   target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
-    #   params:
-    #     monitor: val/loss_simple_ema
-    #     mode: min
-    #     patience: 4
+    early_stopping:
+      target: pytorch_lightning.callbacks.early_stopping.EarlyStopping
+      params:
+        monitor: val/loss_simple_ema
+        mode: min
+        patience: 5
 
   trainer:
     benchmark: True
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
     check_val_every_n_epoch: 2
-    max_epochs: 50
+    max_epochs: 100
     #max_steps: 40000
