@@ -7,6 +7,7 @@ model:
     num_timesteps_cond: 1
     log_every_t: 1000
     timesteps: 1000
+    use_ema: False
     first_stage_key: "image"
     cond_stage_key: "txt"
     concat_key: "person_mask"
@@ -102,65 +103,46 @@ data:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
-        pair_file: 
-         #- pairs-train-all.csv
-         - solo-train-all.csv
-        input_mask_type: smpl
-        image_size:
-        - 512
-        - 384
-        f: 8
         image_dir: img_512
-        data_file: deepfashion_map.csv
-        df_filter: segm
+        data_file: data/deepfashion/deepfashion_map.csv
+        pair_file: 
+         - data/deepfashion/mm-train-all.csv
+        input_mask_type: mask
+        image_size: [512, 384]
+        f: 8
+        #df_filter: segm
         dropout: 0.1
         loss_weight:
           background: 0.5
-          #left-arm: 1.0
-          #right-arm: 1.0 
-          face: 2.0
+          face: 5.0
+          #skin: 2.0
     
     validation:          
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
-        pair_file: 
-          #- pairs-test-all.csv
-          - solo-test-all.csv
-        input_mask_type: smpl
-        image_size:
-        - 512
-        - 384
-        f: 8
         image_dir: img_512
-        data_file: deepfashion_map.csv
-        df_filter: segm
-        loss_weight:
-          background: 0.5
-          #left-arm: 2.0
-          #right-arm: 2.0 
-          face: 2.0
+        data_file: data/deepfashion/deepfashion_map.csv
+        pair_file: 
+          - data/deepfashion/mm-test-all.csv
+        input_mask_type: mask
+        image_size: [512, 384]
+        f: 8                
+        #df_filter: segm
 
     test:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
         folder: "/home/soon/datasets/deepfashion_inshop"
-        pair_file: 
-          #- pairs-test-all.csv
-          - solo-test-all.csv
-        input_mask_type: smpl
-        image_size:
-        - 512
-        - 384
-        f: 8
         image_dir: img_512
-        data_file: deepfashion_map.csv
-        df_filter: segm
-        loss_weight:
-          background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
+        data_file: data/deepfashion/deepfashion_map.csv
+        pair_file: 
+          - data/deepfashion/mm-test-all.csv
+        input_mask_type: mask
+        image_size: [512, 384]
+        f: 8                
+        #df_filter: segm
+
 lightning:
   find_unused_parameters: False
 
@@ -169,7 +151,7 @@ lightning:
       save_last: True
       every_n_epochs: 2
       save_top_k: 1
-      monitor: val/loss_simple_ema
+      monitor: val/loss_simple
 
   callbacks:
     image_logger:
@@ -184,7 +166,7 @@ lightning:
          - src_image
          - smpl_image
         log_images_kwargs:
-          use_ema_scope: True
+          use_ema_scope: False
           inpaint: False
           plot_progressive_rows: False
           plot_diffusion_rows: False

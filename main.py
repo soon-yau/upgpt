@@ -173,7 +173,7 @@ def worker_init_fn(_):
 class DataModuleFromConfig(pl.LightningDataModule):
     def __init__(self, batch_size, train=None, validation=None, test=None, predict=None,
                  wrap=False, num_workers=None, shuffle_test_loader=False, use_worker_init_fn=False,
-                 shuffle_val_dataloader=False):
+                 shuffle_val_dataloader=True):
         super().__init__()
         self.batch_size = batch_size
         self.dataset_configs = dict()
@@ -373,7 +373,7 @@ class ImageLogger(Callback):
         
         # save local
         root = os.path.join(pl_module.logger.save_dir, "images", split)
-        filename = "samples-{:06}_e-{:06}_b-{:06}.png".format(
+        filename = "styles-{:06}_e-{:06}_b-{:06}.jpg".format(
             pl_module.global_step,
             pl_module.current_epoch,
             batch_idx)
