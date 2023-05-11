@@ -17,13 +17,16 @@ BibTeX:
 Editing and Pose Transfer}, 
       author={Soon Yau Cheong and Armin Mustafa and Andew Gilbert},
       year={2023},
-      eprint={},
-      archivePrefix={arXiv},
+      journal={arXiv:2304.08870},
       primaryClass={cs.CV}
 }
 ```
 
-
+## To-Do
+- [x] release model weights
+- [x] release inference app
+- [ ] release interpolation app
+- [ ] release SMPL data and training script
 
 ## Paper's Result
 The ground truth and generated images used in the paper can be downaloded from
