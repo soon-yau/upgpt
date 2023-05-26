@@ -16,7 +16,7 @@ from einops import rearrange
 from omegaconf import OmegaConf
 from ldm.data.generate_utils import InferenceModel, draw_styles, convert_fname, interp_mask
 
-
+device = 'cuda:0'
 styles_root = Path('styles')
 cache_root = Path('app_cache')
 local_style_root = cache_root/'styles'
@@ -90,14 +90,14 @@ def upgpt_model(config_file = 'models/upgpt/pt_256/config.yaml',
 
     return model 
 
-model = upgpt_model()
+model = upgpt_model(device=device)
 
 disable_upscale = True
 upscale_ckpt = "models/upgpt/upscale/upgpt.upscale.v1.ckpt"
 if os.path.exists(upscale_ckpt):
     upscale_model = upgpt_model('models/upgpt/upscale/config.yaml',
                                 upscale_ckpt, 
-                                'cuda:0')
+                                device)
     disable_upscale = False
 def load_smpl(folder):
     smpl_file = glob(str(Path(folder)/'*.p'))[0]
