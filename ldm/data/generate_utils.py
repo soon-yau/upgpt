@@ -132,11 +132,17 @@ class InferenceModel:
     def __init__(self, config, ckpt, device):
         self.device = device
         text_encoder_config = {'target': 'ldm.modules.encoders.modules.FrozenCLIPTextEmbedder', 
-                       'params': {'normalize': False}}
-        self.clip_text_encoder = instantiate_from_config(text_encoder_config).to(device)
-        self.clip_image_encoder = instantiate_from_config(config['model']['params']['extra_cond_stages']['style_cond']).to(device)
+                               'params': {'normalize': False, 'device':device}}
+        self.clip_text_encoder = instantiate_from_config(text_encoder_config)
+
+        style_cond_config = config['model']['params']['extra_cond_stages']['style_cond']
+        style_cond_config['params']= {'device':device}
+        self.clip_image_encoder = instantiate_from_config(style_cond_config)
+        
         config['model']['params']['extra_cond_stages']['style_cond']['target'] = 'ldm.modules.poses.poses.DummyModel'
-        config['model']['params']['first_stage_config']['params']['ckpt_path'] = None        
+        config['model']['params']['first_stage_config']['params']['ckpt_path'] = None      
+        config['model']['params']['cond_stage_config']['params'] = {'device':device}
+        
         self.model = load_model_from_config(config, f"{ckpt}").to(device)
 
     def create_batch(self, batch, repeat=1):
@@ -151,7 +157,6 @@ class InferenceModel:
         return batch
 
     def generate(self, batch, steps=200, repeat=1, use_ema=True):
-        
         with torch.no_grad():
             images = self.model.log_images(batch, ddim_steps=steps, use_ema=use_ema,
                                     unconditional_guidance_scale=3.,
