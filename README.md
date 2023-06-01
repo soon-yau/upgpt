@@ -1,5 +1,7 @@
-# Breaking Change (1st Jun 2023)
+## Breaking Change (1st Jun 2023)
 I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
+
+![App](./assets/app.png)
 
 # UPGPT
 This is the official Github repo for the paper "UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer"
@@ -7,6 +9,8 @@ https://arxiv.org/abs/2304.08870
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
 The code was adapted from https://github.com/Stability-AI/stablediffusion/.
+
+
 
 ## Video Demo (HD) 
 
