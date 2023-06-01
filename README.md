@@ -47,7 +47,7 @@ conda activate upgpt
 ## App
 As the SMPL files are not optimised and their size are too big to be hosted online, so we will not be providing them for training nor inference. However, we provide a few samples that you can play with in the app.
 
-- Download models pt_256.zip and upscale.zip(optional) from [Google Drive](https://drive.google.com/drive/folders/1ifKoQEOir9NXmZGrPSIYpFT5L4pSHTBh?usp=share_link) and unzip into ./models/upgpt
+- Download models interp_256.zip and upscale.zip(optional) from [Google Drive](https://drive.google.com/drive/folders/1ifKoQEOir9NXmZGrPSIYpFT5L4pSHTBh?usp=share_link) and unzip into ./models/upgpt
 - Start the app by typing in terminal `streamlit run app.py`
 - Click "Image Styles->Browse files" to select images from ./fashion. Then "select styles" and click "Show/Get Styles" to extract style images. The model is trained for pose transfer, hence a face style image is advised to produce good result.
 - Entering "style text" will override corresponding style images, therefore remove style text if you want to use style image.
