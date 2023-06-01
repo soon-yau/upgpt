@@ -18,7 +18,7 @@ from einops import rearrange
 from omegaconf import OmegaConf
 from ldm.data.generate_utils import InferenceModel, draw_styles, convert_fname, interp_mask
 
-DEVICE = 'cuda:1'
+DEVICE = 'cuda:0'
 CONFIG_FILE = 'models/upgpt/interp_256/config.yaml'
 CKPT = 'models/upgpt/interp_256/upgpt.interp256.v1.ckpt'
 upscale_ckpt = "models/upgpt/upscale/upgpt.upscale.v1.ckpt"
@@ -109,6 +109,7 @@ disable_upscale = True
 if os.path.exists(upscale_ckpt):
     upscale_model = upgpt_model('models/upgpt/upscale/config.yaml',
                                 upscale_ckpt, device=DEVICE)
+
     disable_upscale = False
 
 def load_smpl(folder):
