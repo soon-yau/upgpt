@@ -1,3 +1,6 @@
+# Breaking Change (1st Jun 2023)
+I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
+
 # UPGPT
 This is the official Github repo for the paper "UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer"
 https://arxiv.org/abs/2304.08870
@@ -17,13 +20,16 @@ BibTeX:
 Editing and Pose Transfer}, 
       author={Soon Yau Cheong and Armin Mustafa and Andew Gilbert},
       year={2023},
-      eprint={},
-      archivePrefix={arXiv},
+      journal={arXiv:2304.08870},
       primaryClass={cs.CV}
 }
 ```
 
-
+## To-Do
+- [x] release model weights
+- [x] release inference app
+- [x] release interpolation model
+- [ ] release SMPL data and training script
 
 ## Paper's Result
 The ground truth and generated images used in the paper can be downaloded from
