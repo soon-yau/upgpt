@@ -8,6 +8,8 @@ https://arxiv.org/abs/2304.08870
 
 The code was adapted from https://github.com/Stability-AI/stablediffusion/.
 
+![App](./assets/app.png)
+
 ## Video Demo (HD) 
 
 [![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
