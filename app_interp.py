@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from glob import glob
 from copy import deepcopy
-
+import math
 import time
 import torch
 from torchvision import transforms as T
@@ -176,7 +176,7 @@ def interp_mask(src_mask, dst_mask, alpha):
     coord_2 = get_coord(dst_mask)
 
     coord = (alpha * coord_1 + (1 - alpha) * coord_2).astype(np.int32)
-    print(coord)
+    #print(coord)
     #coord = np.array([ 0, 31,  12, 19])
     new_mask = get_mask(src_mask, coord)
     return new_mask
@@ -217,7 +217,9 @@ with right_column:
         delete_files_in_folder(str(local_lowres_root    ))        
     display_samples(local_lowres_root)
 
-right_column.markdown("##### Interpolation")
+right_column.markdown("##### Pose Interpolation")
+interp_factors = right_column.text_input('Interplation factor, from 1.0 to 0.0, comma seperated. You may need to tweak the spacing for better result.', 
+                            value='1.0, 0.8, 0.7, 0.6, 0.4, 0.3, 0.2, 0.1, 0.0')
 interp_image = right_column.empty()
 delete_all_interp_button = right_column.button(label='Delete all images')
 if delete_all_interp_button:
@@ -228,8 +230,8 @@ display_samples(local_interp_root, interp_image)
 
 with left_column:
     with st.form(key='input'):    
-        st.markdown("##### Text Prompt")
-        default_text = "a woman is wearing a sleeveless tank and a short skirt."
+        st.markdown("##### Content Text")
+        default_text = "a woman is wearing a long sleeve shirt and long pant."
         content_text = st.text_area('Content text', label_visibility='hidden', value=default_text)
         st.markdown("##### Style Text")
         
@@ -245,9 +247,9 @@ with left_column:
         st.image(pose_images, caption=pose_ids, width=96)
         pose_column_1, pose_column_2 = st.columns([1,1])
         with pose_column_1:
-            pose_select = st.radio("Source pose", pose_ids)
+            pose_select = st.radio("Source pose", pose_ids, index=0)
         with pose_column_2:
-            target_pose_select = st.radio("Target pose", pose_ids)
+            target_pose_select = st.radio("Target pose", pose_ids, index=3)
         st.markdown("---")
         
         gen_column, interp_column = st.columns([1,1])
@@ -288,14 +290,13 @@ with left_column:
             dst_pose = load_smpl(pose_folders[target_pose_select - 1])
             batch.update(src_pose)
             dst_batch.update(dst_pose)
-            interp_n = 6
-            alphas = np.arange(1.0,-0.1,-1/interp_n)
-            #alphas = np.array([1]*interp_n)
+
+            alphas = np.array([float(num) for num in interp_factors.split(',')])
             batch = model.create_batch(batch, repeat=len(alphas))
             
-            for i, alpha in enumerate(alphas):    
+            for i, alpha in enumerate(alphas):
                 batch['smpl'][i] = alpha * batch['smpl'][i] + (1 - alpha) * dst_batch['smpl'].to(DEVICE)
-                #batch['person_mask'][i] = interp_mask(batch['person_mask'][i], dst_batch['person_mask'], alpha)
+                batch['person_mask'][i] = interp_mask(batch['person_mask'][i], dst_batch['person_mask'], alpha)
             log = model.generate(batch, 200)
             
             for i, sample in enumerate(log['samples']):
@@ -311,7 +312,7 @@ with mid_column:
     #style_image = right_2_column.empty()
     #with left_2_column:
     with st.form("my-form", clear_on_submit=False):
-        st.markdown("##### Image Styles")
+        st.markdown("##### Style Images")
         style_file = st.file_uploader("Style reference")
         style_image = st.empty()
         options = None
