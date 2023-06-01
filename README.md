@@ -1,5 +1,6 @@
 ## Breaking Change (1st Jun 2023)
 I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
+
 ![App](./assets/app.png)
 
 # UPGPT
