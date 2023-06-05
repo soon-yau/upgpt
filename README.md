@@ -68,7 +68,9 @@ This demonstration uses pre-segmented style images from DeepFashion Multimodal d
 ## Training
 There are several configurations proposed in the paper but for simplicity we provide only one config (bounding box as RPM) that can perform both pose transfer and pose interpolation. If you want to compare our result (silhouette mask as RPM), we suggest you to download the generated images (see section "Paper's Result" above).
 
-Follow (1) to download and unzip data; and run train.sh or 
+1. Download and unzip deepfashion_inshop.zip into datasets/deepfashion_inshop.
+2. Download deepfashion_256_v2.ckpt and place it in models/first_stage_models/kl-f8-deepfashion
+3. Run train.sh, or 
 
 ```python main.py -t --base configs/deepfashion/bbox.yaml --gpus 0, --scale_lr False --num_nodes 1```
 
