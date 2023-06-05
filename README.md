@@ -1,6 +1,6 @@
 # UPGPT
 This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model for **P**erson Image **G**eneration, Editing and **P**ose **T**ransfer"
-https://arxiv.org/abs/2304.08870
+https://arxiv.org/abs/2304.08870. The first model that could combine all the person image generation functions, and conditioning using pose, text and visual prompts.
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
 Simultaneous pose and camera view interpolation via SMPL parameter linear interpolation.
