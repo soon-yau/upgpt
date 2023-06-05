@@ -1,7 +1,9 @@
-## Breaking Change (1st Jun 2023)
-I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
+## Changes 
+#### 5th June 2023
+Training data and script released - pose transfer with bounding box as RPM. This concludes all the planned releases.
 
-![App](./assets/app.png)
+#### 1st Jun 2023
+I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
 
 # UPGPT
 This is the official Github repo for the paper "UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer"
@@ -29,12 +31,6 @@ Editing and Pose Transfer},
 }
 ```
 
-## To-Do
-- [x] release model weights
-- [x] release inference app
-- [x] release interpolation model
-- [x] release SMPL data and training script
-
 ## Paper's Result
 The ground truth and generated images used in the paper can be downaloded from
 [the repo release.](https://github.com/soon-yau/upgpt/releases/tag/v1.0.0)
@@ -50,9 +46,11 @@ conda activate upgpt
 ## Files
 Model checkpoints and dataset can be downloaded from [HuggingFace](https://huggingface.co/soonyau/upgpt/tree/main). 
 
-## App
-This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload. We provide a few samples that you can play with in the app.
+## App Demo
 
+![App](./assets/app.png)
+
+This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload. We provide a few samples that you can play with in the app.
 - Download models interp_256.zip and upscale.zip(optional) and unzip into ./models/upgpt
 - Start the app by typing in terminal `streamlit run app.py`
 - Click "Image Styles->Browse files" to select images from ./fashion. Then "select styles" and click "Show/Get Styles" to extract style images. The model is trained for pose transfer, hence a face style image is advised to produce good result.
