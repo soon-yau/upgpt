@@ -2,7 +2,7 @@
 #### 5th June 2023
 Training data and script released - pose transfer with bounding box as RPM. This concludes all the planned releases.
 
-#### 1st Jun 2023
+#### 1st June 2023
 I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
 
 # UPGPT
@@ -10,9 +10,11 @@ This is the official Github repo for the paper "UPGPT: Universal Diffusion Model
 https://arxiv.org/abs/2304.08870
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
-The code was adapted from https://github.com/Stability-AI/stablediffusion/.
+Simultaneous pose and camera view interpolation via SMPL parameter linear interpolation.
 
+[![Interpolation](assets/interp_1.jpg)]
 
+<sub> The code was adapted from https://github.com/Stability-AI/stablediffusion/.</sub>
 
 ## Video Demo (HD) 
 
@@ -50,7 +52,7 @@ Model checkpoints and dataset can be downloaded from [HuggingFace](https://huggi
 
 ![App](./assets/app.png)
 
-This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload. We provide a few samples that you can play with in the app.
+This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload. We provide a few samples in the app for you to play with. If you want to try more style images, follow instructions in  "Additional Data".
 - Download models interp_256.zip and upscale.zip(optional) and unzip into ./models/upgpt
 - Start the app by typing in terminal `streamlit run app.py`
 - Click "Image Styles->Browse files" to select images from ./fashion. Then "select styles" and click "Show/Get Styles" to extract style images. The model is trained for pose transfer, hence a face style image is advised to produce good result.
@@ -58,11 +60,15 @@ This demonstration uses pre-segmented style images from DeepFashion Multimodal d
  
 ### Additional data
 1. Download and unzip deepfashion_inshop.zip into datasets/deepfashion_inshop.
-2. You can try more style images from the DeepFashion Multimodal dataset by downloading and unzip images.zip from [DeepFashion Multimodal dataset](https://github.com/yumingj/DeepFashion-MultiModal). Use this inplace of ./fashion to select fashion images from. Also, use 'rm -r app_cache/styles && ln -s deepfashion_inshop/styles app_cache/styles' to link to the full dataset style images. 
+2. You can try more style images from the DeepFashion Multimodal dataset by downloading and unzip images.zip from [DeepFashion Multimodal dataset](https://github.com/yumingj/DeepFashion-MultiModal). Use this inplace of ./fashion to select fashion images from. Also, run `rm -r app_cache/styles && ln -s deepfashion_inshop/styles app_cache/styles` to link to the full dataset style images. 
  
 ## Training
-Followed [1] to download data; and run train.sh or 
+There are several configurations proposed in the paper but for simplicity we provide only one config (bounding box as RPM) that can perform both pose transfer and pose interpolation. If you want to compare our result (silhouette mask as RPM), we suggest you to download the generated images (see section "Paper's Result" above).
+
+Follow (1) to download and unzip data; and run train.sh or 
+
 ```python main.py -t --base configs/deepfashion/bbox.yaml --gpus 0, --scale_lr False --num_nodes 1```
+
 Checkpoints and generated images will be saved in ./logs.
 
 
