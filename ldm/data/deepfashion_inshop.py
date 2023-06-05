@@ -185,7 +185,6 @@ class DeepFashionPair(Loader):
             data.update({"image": target_image, "txt": text})
             if self.image_only:
                 return data
-            
             fname = get_name(row['from'], row['to'])
             # source - get fashion styles
             source = self.map_df.loc[row['from']]
@@ -194,7 +193,6 @@ class DeepFashionPair(Loader):
             #styles_dict = self.segmenter.forward(source_image, segm)
             #styles = torch.stack(list(styles_dict.values()))            
             styles_path = source['styles']
-            
             if styles_path == np.nan:
                 return self.skip_sample(index)
             
@@ -216,7 +214,7 @@ class DeepFashionPair(Loader):
                     style_image = self.clip_norm(torch.zeros(3, 224, 224))
                 style_images.append(style_image)
             style_images = torch.stack(style_images)  
-            
+
             data.update({"fname": fname, 
                     "src_image": self.image_transform(self.resize_pad_image(source_image)),
                     "styles": style_images})
@@ -234,12 +232,16 @@ class DeepFashionPair(Loader):
             elif self.input_mask_type=='bbox':
                 mask_file = pose_path + '_mask.png'
                 mask_image = self.get_bbox(np.array(Image.open(mask_file)))
-                person_mask = self.mask_transform(Image.fromarray(mask_image*255))
+                '''
+                Should multiply by 255 but keep the bug to be backward compatible with trained model.
+                person_mask = self.mask_transform(Image.fromarray(mask_image)*255)
+                '''                
+                person_mask = self.mask_transform(Image.fromarray(mask_image))
             else:
                 person_mask = self.mask_transform(smpl_image)
           
             smpl_image = self.image_transform(smpl_image)
-            
+
             with open(smpl_file, 'rb') as f:
                 smpl_params = pickle.load(f)
                 pred_pose = smpl_params[0]['pred_body_pose']
@@ -333,7 +335,11 @@ class DeepFashionSample(DeepFashionPair):
         elif self.input_mask_type=='bbox':
             mask_file = pose_path + '_mask.png'
             mask_image = self.get_bbox(np.array(Image.open(mask_file)))
-            person_mask = self.mask_transform(Image.fromarray(mask_image*255))
+            '''
+            Should multiply by 255 but keep the bug to be backward compatible with trained model.
+            person_mask = self.mask_transform(Image.fromarray(mask_image)*255)
+            '''
+            person_mask = self.mask_transform(Image.fromarray(mask_image))
         else:
             person_mask = self.mask_transform(smpl_image)
 
