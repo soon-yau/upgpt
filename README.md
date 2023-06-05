@@ -31,7 +31,7 @@ Editing and Pose Transfer},
 - [x] release model weights
 - [x] release inference app
 - [x] release interpolation model
-- [ ] release SMPL data and training script
+- [x] release SMPL data and training script
 
 ## Paper's Result
 The ground truth and generated images used in the paper can be downaloded from
@@ -45,22 +45,25 @@ and activated with:
 conda env create -f environment.yaml
 conda activate upgpt
 ```
+## Files
+Model checkpoints and dataset can be downloaded from [HuggingFace](https://huggingface.co/soonyau/upgpt/tree/main). 
 
 ## App
-As the SMPL files are not optimised and their size are too big to be hosted online, so we will not be providing them for training nor inference. However, we provide a few samples that you can play with in the app.
+This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload. We provide a few samples that you can play with in the app.
 
-- Download models interp_256.zip and upscale.zip(optional) from [Google Drive](https://drive.google.com/drive/folders/1ifKoQEOir9NXmZGrPSIYpFT5L4pSHTBh?usp=share_link) and unzip into ./models/upgpt
+- Download models interp_256.zip and upscale.zip(optional) and unzip into ./models/upgpt
 - Start the app by typing in terminal `streamlit run app.py`
 - Click "Image Styles->Browse files" to select images from ./fashion. Then "select styles" and click "Show/Get Styles" to extract style images. The model is trained for pose transfer, hence a face style image is advised to produce good result.
 - Entering "style text" will override corresponding style images, therefore remove style text if you want to use style image.
  
-### Optional
-You can try more style images from the DeepFashion Multimodal dataset:
-1. Download and unzip images.zip from [DeepFashion Multimodal dataset](https://github.com/yumingj/DeepFashion-MultiModal). Use this inplace of ./fashion to select fashion images. 
-2. Download style.zip from the Google Drive above, and unzip to ./styles. This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload.
+### Additional data
+1. Download and unzip deepfashion_inshop.zip into datasets/deepfashion_inshop.
+2. You can try more style images from the DeepFashion Multimodal dataset by downloading and unzip images.zip from [DeepFashion Multimodal dataset](https://github.com/yumingj/DeepFashion-MultiModal). Use this inplace of ./fashion to select fashion images from. Also, use 'rm -r app_cache/styles && ln -s deepfashion_inshop/styles app_cache/styles' to link to the full dataset style images. 
  
+## Training
+Followed [1] to download data; and run train.sh or 
+```python main.py -t --base configs/deepfashion/bbox.yaml --gpus 0, --scale_lr False --num_nodes 1```
+Checkpoints and generated images will be saved in ./logs.
 
-
-<!---  https://user-images.githubusercontent.com/19167278/233998033-7bfbeec5-e144-4928-b2ed-82f8b52c463c.mp4 --->
 
 

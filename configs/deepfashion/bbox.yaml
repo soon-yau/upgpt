@@ -102,31 +102,25 @@ data:
     train:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
-        folder: "/home/soon/datasets/deepfashion_inshop"
+        folder: "datasets/deepfashion_inshop"
         pair_file: 
-         - pairs-train-all.csv
-         - solo-train-all.csv
+         - data/deepfashion/pairs-train-all.csv
+         - data/deepfashion/solo-train-all.csv
         input_mask_type: bbox
         image_size:
         - 256
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
+        data_file: data/deepfashion/deepfashion_map.csv
         men_factor: 4 # increase men samples by 4 times
-        #df_filter: segm
-        loss_weight:
-          background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 5.0
     
     validation:          
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
-        folder: "/home/soon/datasets/deepfashion_inshop"
+        folder: "datasets/deepfashion_inshop"
         pair_file: 
-          - pairs-test-all.csv
+          - data/deepfashion/pairs-train-all.csv
           #- solo-test-all.csv
         input_mask_type: bbox
         image_size:
@@ -134,20 +128,15 @@ data:
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
-        #df_filter: segm
-        loss_weight:
-          #background: 0.5
-          #left-arm: 2.0
-          #right-arm: 2.0 
-          face: 8.0
+        data_file: data/deepfashion/deepfashion_map.csv
+
 
     test:
       target: ldm.data.deepfashion_inshop.DeepFashionPair
       params:
-        folder: "/home/soon/datasets/deepfashion_inshop"
+        folder: "datasets/deepfashion_inshop"
         pair_file: 
-          - pairs-test-all.csv
+          - data/deepfashion/pairs-test-all.csv
           #- solo-test-all.csv
         input_mask_type: bbox
         image_size:
@@ -155,13 +144,8 @@ data:
         - 192
         f: 8
         image_dir: img_256
-        data_file: deepfashion_map.csv
-        #df_filter: segm
-        loss_weight:
-          #background: 0.5
-          left-arm: 2.0
-          right-arm: 2.0 
-          face: 8.0
+        data_file: data/deepfashion/deepfashion_map.csv
+
 lightning:
   find_unused_parameters: False
 
@@ -198,12 +182,12 @@ lightning:
       params:
         monitor: val/loss_simple_ema
         mode: min
-        patience: 3
+        patience: 5
 
   trainer:
     benchmark: True
     num_sanity_val_steps: 1
     accumulate_grad_batches: 1
     check_val_every_n_epoch: 1
-    max_epochs: 12
+    max_epochs: 100
     #max_steps: 40000
