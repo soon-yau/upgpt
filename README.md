@@ -1,5 +1,5 @@
 # UPGPT
-This is the official Github repo for the paper "UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer"
+This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model for **P**erson Image **G**eneration, Editing and **P**ose **T**ransfer"
 https://arxiv.org/abs/2304.08870
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
@@ -12,13 +12,14 @@ Simultaneous pose and camera view interpolation via SMPL parameter linear interp
 
 
 ## Video Demo (HD) 
+Click on the icon to view demonstration of earlier version of our app on Youtube. 
 
 [![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
 
 
 BibTeX:
 ```
-@misc{upgpt,
+@misc{upgpt23,
       title={UPGPT: Universal Diffusion Model for Person Image Generation,
 Editing and Pose Transfer}, 
       author={Soon Yau Cheong and Armin Mustafa and Andew Gilbert},
