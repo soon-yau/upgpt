@@ -1,10 +1,3 @@
-## Changes 
-#### 5th June 2023
-Training data and script released - pose transfer with bounding box as RPM. This concludes all the planned releases.
-
-#### 1st June 2023
-I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
-
 # UPGPT
 This is the official Github repo for the paper "UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer"
 https://arxiv.org/abs/2304.08870
@@ -12,7 +5,7 @@ https://arxiv.org/abs/2304.08870
 
 Simultaneous pose and camera view interpolation via SMPL parameter linear interpolation.
 
-[![Interpolation](assets/interp_1.jpg)]
+![Interpolation](assets/interp_1.jpg)
 
 <sub> The code was adapted from https://github.com/Stability-AI/stablediffusion/.</sub>
 
@@ -32,6 +25,13 @@ Editing and Pose Transfer},
       primaryClass={cs.CV}
 }
 ```
+## Changes 
+#### 5th June 2023
+Training data and script released - pose transfer with bounding box as RPM. This concludes all the planned releases.
+
+#### 1st June 2023
+I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
+
 
 ## Paper's Result
 The ground truth and generated images used in the paper can be downaloded from
