@@ -9,6 +9,8 @@ Simultaneous pose and camera view interpolation via SMPL parameter linear interp
 
 <sub> The code was adapted from https://github.com/Stability-AI/stablediffusion/.</sub>
 
+
+
 ## Video Demo (HD) 
 
 [![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
