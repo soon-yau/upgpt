@@ -57,7 +57,7 @@ Model checkpoints and dataset can be downloaded from [HuggingFace](https://huggi
 
 This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload. We provide a few samples in the app for you to play with. If you want to try more style images, follow instructions in  "Additional Data".
 - Download models interp_256.zip and upscale.zip(optional) and unzip into ./models/upgpt
-- Start the app by typing in terminal `streamlit run app.py`
+- Start the app by typing in terminal `streamlit run app.py  --server.fileWatcherType none`
 - Click "Image Styles->Browse files" to select images from ./fashion. Then "select styles" and click "Show/Get Styles" to extract style images. The model is trained for pose transfer, hence a face style image is advised to produce good result.
 - Entering "style text" will override corresponding style images, therefore remove style text if you want to use style image.
  
