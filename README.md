@@ -1,6 +1,6 @@
 # UPGPT
-This is the official Github repo for the paper "UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer"
-https://arxiv.org/abs/2304.08870
+This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model for **P**erson Image **G**eneration, Editing and **P**ose **T**ransfer"
+https://arxiv.org/abs/2304.08870. The first model that could combine all the person image generation functions, and conditioning using pose, text and visual prompts.
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
 Simultaneous pose and camera view interpolation via SMPL parameter linear interpolation.
@@ -12,13 +12,14 @@ Simultaneous pose and camera view interpolation via SMPL parameter linear interp
 
 
 ## Video Demo (HD) 
+Click on the icon to view demonstration of earlier version of our app on Youtube. 
 
 [![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
 
 
 BibTeX:
 ```
-@misc{upgpt,
+@misc{upgpt23,
       title={UPGPT: Universal Diffusion Model for Person Image Generation,
 Editing and Pose Transfer}, 
       author={Soon Yau Cheong and Armin Mustafa and Andew Gilbert},
@@ -56,7 +57,7 @@ Model checkpoints and dataset can be downloaded from [HuggingFace](https://huggi
 
 This demonstration uses pre-segmented style images from DeepFashion Multimodal dataset and does not support arbitrary images that you upload. We provide a few samples in the app for you to play with. If you want to try more style images, follow instructions in  "Additional Data".
 - Download models interp_256.zip and upscale.zip(optional) and unzip into ./models/upgpt
-- Start the app by typing in terminal `streamlit run app.py`
+- Start the app by typing in terminal `streamlit run app.py  --server.fileWatcherType none`
 - Click "Image Styles->Browse files" to select images from ./fashion. Then "select styles" and click "Show/Get Styles" to extract style images. The model is trained for pose transfer, hence a face style image is advised to produce good result.
 - Entering "style text" will override corresponding style images, therefore remove style text if you want to use style image.
  
@@ -67,7 +68,9 @@ This demonstration uses pre-segmented style images from DeepFashion Multimodal d
 ## Training
 There are several configurations proposed in the paper but for simplicity we provide only one config (bounding box as RPM) that can perform both pose transfer and pose interpolation. If you want to compare our result (silhouette mask as RPM), we suggest you to download the generated images (see section "Paper's Result" above).
 
-Follow (1) to download and unzip data; and run train.sh or 
+1. Download and unzip deepfashion_inshop.zip into datasets/deepfashion_inshop.
+2. Download deepfashion_256_v2.ckpt and place it in models/first_stage_models/kl-f8-deepfashion
+3. Run train.sh, or 
 
 ```python main.py -t --base configs/deepfashion/bbox.yaml --gpus 0, --scale_lr False --num_nodes 1```
 
