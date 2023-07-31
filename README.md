@@ -28,12 +28,12 @@ Editing and Pose Transfer},
       primaryClass={cs.CV}
 }
 ```
-## Changes 
-#### 5th June 2023
-Training data and script released - pose transfer with bounding box as RPM. This concludes all the planned releases.
+## News 
+**[2023.07.27]** Updated Arxiv paper.
 
-#### 1st June 2023
-I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
+**[2023.06.05]** Training data and script released - pose transfer with bounding box as RPM. This concludes all the planned releases.
+
+**[2023.06.01]** I have updated the code for pose interpolation. However, you will need to download the new model file interp_256.zip (previously pt_256.zip). The app now also come with pre-loaded style images and generated examples.
 
 
 ## Paper's Result
