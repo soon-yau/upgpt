@@ -29,6 +29,8 @@ Editing and Pose Transfer},
 }
 ```
 ## News 
+**[2023.08.16]** Accepted at 2023 IEEE/CVF International Conference on Computer Vision Workshops - Computer Vision for Metaverse.
+
 **[2023.07.27]** Updated Arxiv paper.
 
 **[2023.06.05]** Training data and script released - pose transfer with bounding box as RPM. This concludes all the planned releases.
