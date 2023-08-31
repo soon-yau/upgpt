@@ -24,12 +24,12 @@ BibTeX:
 Editing and Pose Transfer}, 
       author={Soon Yau Cheong and Armin Mustafa and Andew Gilbert},
       year={2023},
-      journal={arXiv:2304.08870},
+      journal={IEEE/CVF International Conference on Computer Vision (ICCV) Workshops},
       primaryClass={cs.CV}
 }
 ```
 ## News 
-**[2023.08.16]** Accepted at 2023 IEEE/CVF International Conference on Computer Vision (ICCV) Workshop.
+**[2023.08.16]** Accepted at 2023 IEEE/CVF International Conference on Computer Vision (ICCV) Workshops.
 
 **[2023.07.27]** Updated Arxiv paper.
 
