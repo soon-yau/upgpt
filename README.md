@@ -9,13 +9,14 @@ Simultaneous pose and camera view interpolation via SMPL parameter linear interp
 
 <sub> The code was adapted from https://github.com/Stability-AI/stablediffusion/.</sub>
 
-
+Featured in [RSIP Vision Newsletter September 2023.](https://www.rsipvision.com/ComputerVisionNews-2023September/3/)
+![rsip](https://github.com/soon-yau/upgpt/assets/19167278/de8c4f80-e30a-47d4-89a7-73488549b269)
+![rsip2](https://github.com/soon-yau/upgpt/assets/19167278/bea76dcf-b623-4b82-a983-62d588e46360)
 
 ## Video Demo (HD) 
 Click on the icon to view demonstration of earlier version of our app on Youtube. 
 
 [![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
-
 
 BibTeX:
 ```
@@ -29,6 +30,10 @@ Editing and Pose Transfer},
 }
 ```
 ## News 
+**[2023.09.25]** Selected for live demo at ICCV 2023 on Friday Oct 6th. https://iccv2023.thecvf.com/demos-111.php
+
+**[2023.09.05]** Featured in RSIP Vision Newsletter September 2023.
+
 **[2023.08.16]** Accepted at 2023 IEEE/CVF International Conference on Computer Vision (ICCV) Workshops.
 
 **[2023.07.27]** Updated Arxiv paper.
