@@ -1,6 +1,24 @@
 # UPGPT
-This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model for **P**erson Image **G**eneration, Editing and **P**ose **T**ransfer"
-https://arxiv.org/abs/2304.08870. The first model that could combine all the person image generation functions, and conditioning using pose, text and visual prompts.
+This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model for **P**erson Image **G**eneration, Editing and **P**ose **T**ransfer". The first model that could combine all the person image generation functions, and conditioning using pose, text and visual prompts.
+
+### Publication:
+
+ICCV Workshop 2023: https://openaccess.thecvf.com/ICCV2023_workshops/CV4Metaverse
+
+Arxiv: https://arxiv.org/abs/2304.08870. 
+
+BibTeX:
+```
+@InProceedings{Cheong_2023_ICCV,
+    author    = {Cheong, Soon Yau and Mustafa, Armin and Gilbert, Andrew},
+    title     = {UPGPT: Universal Diffusion Model for Person Image Generation, Editing and Pose Transfer},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) Workshops},
+    month     = {October},
+    year      = {2023},
+    pages     = {4173-4182}
+```
+
+
 ![banner](https://user-images.githubusercontent.com/19167278/234025496-242e3df0-5f5c-49bc-ba08-9aeaa5907172.png)
 
 Simultaneous pose and camera view interpolation via SMPL parameter linear interpolation.
@@ -18,17 +36,7 @@ Click on the icon to view demonstration of earlier version of our app on Youtube
 
 [![Video Demo (HD)](assets/video.jpg)](https://youtu.be/2E8MSRlcN54)
 
-BibTeX:
-```
-@misc{upgpt23,
-      title={UPGPT: Universal Diffusion Model for Person Image Generation,
-Editing and Pose Transfer}, 
-      author={Soon Yau Cheong and Armin Mustafa and Andew Gilbert},
-      year={2023},
-      journal={IEEE/CVF International Conference on Computer Vision (ICCV) Workshops},
-      primaryClass={cs.CV}
-}
-```
+
 ## News 
 **[2023.09.25]** Selected for live demo at ICCV 2023 on Friday Oct 6th. https://iccv2023.thecvf.com/demos-111.php
 
