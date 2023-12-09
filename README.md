@@ -38,6 +38,9 @@ Click on the icon to view demonstration of earlier version of our app on Youtube
 
 
 ## News 
+
+**[2023.12.09]** A follow-up paper has been published, the new model is 100x better in image quality. Check out the [project page](https://soon-yau.github.io/visconet/). 
+
 **[2023.09.25]** Selected for live demo at ICCV 2023 on Friday Oct 6th. https://iccv2023.thecvf.com/demos-111.php
 
 **[2023.09.05]** Featured in RSIP Vision Newsletter September 2023.
