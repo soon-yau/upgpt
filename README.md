@@ -1,5 +1,7 @@
 # UPGPT
-This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model for **P**erson Image **G**eneration, Editing and **P**ose **T**ransfer". The first model that could combine all the person image generation functions, and conditioning using pose, text and visual prompts.
+This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model for **P**erson Image **G**eneration, Editing and **P**ose **T**ransfer". The first model that could combine all the person image generation functions, and conditioning using pose, text and visual prompts. 
+
+***A follow-up paper has been published, resulting in huge improvement in image quality, check out the [ViscoNet project page](https://soon-yau.github.io/visconet/).***
 
 ### Publication:
 
@@ -39,7 +41,7 @@ Click on the icon to view demonstration of earlier version of our app on Youtube
 
 ## News 
 
-**[2023.12.09]** A follow-up paper has been published, the new model is 100x better in image quality. Check out the [project page](https://soon-yau.github.io/visconet/). 
+**[2023.12.09]** A follow-up paper has been published, resulting in huge improvement in image quality, check out the [ViscoNet project page](https://soon-yau.github.io/visconet/). 
 
 **[2023.09.25]** Selected for live demo at ICCV 2023 on Friday Oct 6th. https://iccv2023.thecvf.com/demos-111.php
 
