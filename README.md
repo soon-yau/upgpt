@@ -5,9 +5,11 @@ This is the official Github repo of "**UPGPT**: **U**niversal Diffusion Model fo
 
 ### Publication:
 
-ICCV Workshop 2023: https://openaccess.thecvf.com/ICCV2023_workshops/CV4Metaverse
+ICCV Workshop 2023: [Official page](https://openaccess.thecvf.com/content/ICCV2023W/CV4Metaverse/html/Cheong_UPGPT_Universal_Diffusion_Model_for_Person_Image_Generation_Editing_and_ICCVW_2023_paper.html)
 
 Arxiv: https://arxiv.org/abs/2304.08870. 
+
+
 
 BibTeX:
 ```
@@ -18,6 +20,7 @@ BibTeX:
     month     = {October},
     year      = {2023},
     pages     = {4173-4182}
+}
 ```
 
 
