@@ -99,5 +99,5 @@ There are several configurations proposed in the paper but for simplicity we pro
 
 Checkpoints and generated images will be saved in ./logs.
 
-
-
+The following SMPL pose estimator was used in this project: 
+https://github.com/facebookresearch/phosa
